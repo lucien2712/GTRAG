@@ -1,75 +1,125 @@
-# Graph-based RAG 專案摘要
+# CLAUDE.md
 
-## 🎯 專案目標
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-建立一套基於圖結構的檢索增強生成（Graph-based RAG）系統，專門處理：
-1. **跨檔案問題**：整合多個文檔的資訊進行推理
-2. **時間序列問題**：分析不同時間點（如季度）的數據演變和趨勢
+## Project Overview
 
-主要應用場景：**財報分析**，處理不同公司的季度財報文件。
+TimeRAG is a graph-based Retrieval-Augmented Generation (RAG) system for temporal data analysis. It specializes in cross-document queries and time-series analysis, particularly for financial report analysis across quarterly earnings.
 
-## 🏗️ 系統架構
+## Development Commands
 
-### **核心組件**
-
-1. **LLMExtractor** - LLM 資訊萃取器
-   - 使用 GPT-4 從文本中萃取實體和關係
-   - 結構化輸出（JSON格式）
-   - 包含置信度評估
-
-2. **GraphBuilder** - 圖建構器  
-   - 建立多層次圖結構
-   - 管理季度子圖
-   - 自動建立時間連接
-
-3. **GraphRetriever** - 智能檢索器
-   - 時間感知檢索
-   - 智能多跳擴展
-   - 語義搜尋
-
-4. **GraphRAGSystem** - 完整系統
-   - 端到端處理流程
-   - 統一查詢介面
-
-## 📊 知識圖譜設計
-
-### **三層圖結構**
-
-```
-時間層：TIME_2024Q1 → TIME_2024Q2 → TIME_2024Q3 → TIME_2024Q4
-
-實體層：同一季度內的實體關係網路
-- Apple_2024Q1 --[ownership]--> iPhone_2024Q1
-- iPhone_2024Q1 --[contribution]--> Revenue_Growth_2024Q1
-
-跨時間層：同一實體的時間演變
-- Apple_2024Q1 ===[temporal_evolution]===> Apple_2024Q2
-- iPhone_2024Q1 ===[temporal_evolution]===> iPhone_2024Q2
+### Setup
+```bash
+pip install -r requirements.txt
 ```
 
-## 🔍 智能檢索機制
+### Running the System
+```bash
+# Run the main demo
+python examples/demo.py
 
-### **1. 階層式檢索**
-```
-第一層：時間範圍篩選 → 選擇相關季度子圖
-第二層：語義搜尋 → 在選定子圖中進行embedding相似度計算
-第三層：結果排序 → 跨季度統一排序
-```
-
-### **2. 智能多跳擴展**
-
-**鄰居重要性計算公式**：
-```
-總分數 = ......
+# Required: Create .env file with OPENAI_API_KEY
+echo "OPENAI_API_KEY=your_key_here" > .env
 ```
 
-**分層擴展策略**：
-- 第1跳：從起始節點選擇前5個最重要鄰居
-- 第2跳：從第1跳節點每個再選擇前5個重要鄰居  
-- 第3跳：繼續擴展，自動過濾低重要性節點
+### Batch Processing
+```bash
+# For multi-file processing (via batch_processor.py)
+python -c "from batch_processor import BatchProcessor; # custom batch processing"
+```
 
-### **3. 混合檢索模式**
+**Note**: This codebase has no test suite or linting configuration currently set up.
 
-- **時間感知檢索**：在指定季度範圍內搜尋
-- **純語義檢索**：不限時間的全圖語義搜尋
-- **混合檢索**：結合時間權重 + 語義權重
+## Core Architecture
+
+### Component Hierarchy (in dependency order)
+1. **config.py** - Centralized configuration using dataclasses
+   - `QueryParams`, `ChunkingConfig`, `EntityTypes`, `PromptConfig`
+   - All system parameters controlled here
+
+2. **document_chunker.py** - Text segmentation with intelligent tokenization
+   - Handles document splitting with configurable overlap
+   - Uses tiktoken for accurate token counting
+
+3. **llm_extractor.py** - LLM-based information extraction  
+   - Extracts entities and relationships using GPT-4
+   - Supports custom LLM functions via constructor
+   - Returns structured JSON
+
+4. **graph_builder.py** - NetworkX-based knowledge graph construction
+   - Creates multi-layered temporal graph structure
+   - Manages quarterly subgraphs and cross-time connections
+   - Supports custom embedding functions
+
+5. **graph_retriever.py** - Intelligent multi-hop retrieval
+   - Time-aware semantic search
+   - Importance-scored neighbor expansion
+   - Configurable retrieval strategies
+
+6. **token_manager.py** - Context length management
+   - Prevents exceeding LLM token limits
+   - Smart truncation and prioritization
+
+7. **timerag_system.py** - Main orchestrator (`GraphRAGSystem`)
+   - Entry point for all operations
+   - Integrates all components
+   - Provides simple API: insert → build_temporal_links → query
+
+8. **batch_processor.py** - Multi-document processing
+   - Handles various file formats (PDF, DOCX, TXT)
+   - Concurrent processing capabilities
+   - Automatic metadata extraction
+
+## Configuration System
+
+### Key Configuration Files
+- **configs/entity_types.json**: Defines extractable entity types (COMPANY, PERSON, PRODUCT, FINANCIAL_METRIC, etc.)
+- **configs/prompts.py**: LLM prompt templates for different operations
+- **config.py**: System-wide configuration classes with type safety
+
+### Entity Types Available
+The system extracts 8 main entity types: COMPANY, PERSON, PRODUCT, FINANCIAL_METRIC, BUSINESS_CONCEPT, MARKET, TECHNOLOGY, GEOGRAPHIC
+
+## Critical Usage Pattern
+
+```python
+from timerag_system import GraphRAGSystem
+from config import QueryParams
+
+# Initialize (with optional custom functions)
+rag = GraphRAGSystem(
+    llm_func=custom_llm_function,  # optional
+    embedding_func=custom_embedding_function  # optional
+)
+
+# Process documents (temporal metadata is crucial)
+rag.insert(text, doc_id, metadata={"quarter": "2024Q1"})
+
+# ESSENTIAL: Build temporal connections after all insertions
+rag.build_temporal_links()
+
+# Query the system
+result = rag.query("Your question", query_params=QueryParams(...))
+```
+
+## Key Implementation Details
+
+1. **Two-Phase Process**: Document insertion must be followed by `build_temporal_links()` to complete graph construction
+2. **Temporal Metadata**: The `quarter` field in metadata enables time-aware functionality
+3. **NetworkX Storage**: Uses NetworkX for graph operations - no external graph database required
+4. **Custom Model Support**: Accepts custom LLM and embedding functions during initialization
+5. **Token Management**: Automatic context length management prevents model overflow
+6. **Multi-Document Processing**: batch_processor.py handles concurrent processing of multiple file formats
+
+## Graph Structure
+
+The system creates a three-layer temporal graph:
+- **Time Layer**: Sequential quarters (TIME_2024Q1 → TIME_2024Q2)  
+- **Entity Layer**: Within-quarter entity relationships
+- **Cross-Time Layer**: temporal_evolution edges connecting same entities across time
+
+## Environment Requirements
+
+- Python 3.8+
+- OpenAI API key in .env file
+- Dependencies in requirements.txt: openai, networkx, sentence-transformers, numpy, tiktoken, pandas, textract, python-docx

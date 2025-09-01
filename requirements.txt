@@ -6,3 +6,8 @@ tiktoken
 pandas
 textract
 python-docx
+python-dotenv
+scikit-learn
+faiss-cpu
+dataclasses-json
+networkx

@@ -1,32 +1,41 @@
 #!/usr/bin/env python3
 """
-TimeRAG API 使用演示
+TimeRAG API Usage Demo
 
-此範例展示了如何初始化系統、索引文件以及提出查詢。
+This example demonstrates how to initialize the system, index documents, and make queries
+using the new refactored timerag package structure.
+
+This demo shows the complete workflow:
+1. System initialization with custom LLM/embedding functions
+2. Document insertion with temporal metadata
+3. Building temporal connections
+4. Querying with entity/relation/chunk integration
 """
 import os
 import sys
 from pathlib import Path
-from dotenv import load_dotenv
 
-# 添加專案根目錄到 Python 路徑，確保可以找到 timeRAG 模組
+# Add project root to Python path to find timerag module
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from timerag_system import GraphRAGSystem
-from config import QueryParams
+from timerag import TimeRAGSystem, QueryParams
 
-# 載入 .env 檔案中的環境變數 (例如 OPENAI_API_KEY)
-load_dotenv()
+# Optional dotenv loading
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    print("python-dotenv not available. Please set environment variables manually.")
 
-# --- 模型定義 ---
-# 在實際應用中，您可以將這些函式放在獨立的檔案中
+# --- Custom Model Functions ---
+# In real applications, you can put these functions in separate files
 
 def gpt_4o_mini_llm(system_prompt: str, user_prompt: str) -> str:
-    """使用 OpenAI GPT-4o-mini 模型的自訂 LLM 函式。"""
-    import openai
-    client = openai.OpenAI()
+    """Custom LLM function using OpenAI GPT-4o-mini model."""
     try:
+        import openai
+        client = openai.OpenAI()
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -37,79 +46,235 @@ def gpt_4o_mini_llm(system_prompt: str, user_prompt: str) -> str:
             response_format={"type": "json_object"}
         )
         return response.choices[0].message.content
+    except ImportError:
+        print("OpenAI library not available. Please install: pip install openai")
+        return "{}"
     except Exception as e:
-        print(f"調用 GPT-4o-mini 時發生錯誤: {e}")
-        return "{}" # 發生錯誤時回傳一個空的 JSON 字串
+        print(f"Error calling GPT-4o-mini: {e}")
+        return "{}"
 
 def openai_embedding_func(text: str) -> list:
-    """使用 OpenAI text-embedding-3-small 模型的自訂嵌入函式。"""
-    import openai
-    client = openai.OpenAI()
+    """Custom embedding function using OpenAI text-embedding-3-small model."""
     try:
+        import openai
+        client = openai.OpenAI()
         response = client.embeddings.create(
             model="text-embedding-3-small",
             input=text
         )
         return response.data[0].embedding
+    except ImportError:
+        print("OpenAI library not available. Please install: pip install openai")
+        return []
     except Exception as e:
-        print(f"生成嵌入向量時發生錯誤: {e}")
-        return [] # 發生錯誤時回傳空列表
+        print(f"Error generating embedding: {e}")
+        return []
 
 
 def main():
-    """主執行函式"""
-    print("--- TimeRAG API 使用演示 ---")
+    """Main execution function"""
+    print("=" * 60)
+    print("TimeRAG API Usage Demo")
+    print("=" * 60)
     
-    # 檢查 API 金鑰是否存在
+    # Check if API key exists
     if not os.getenv("OPENAI_API_KEY"):
-        print("錯誤: 請在 .env 檔案中設定您的 OPENAI_API_KEY")
+        print("⚠️  Warning: OPENAI_API_KEY not found in environment variables")
+        print("Please set your API key in .env file or environment variable")
+        print("Demo will continue but may fail without valid API key")
+        print()
+    
+    # 1. Initialize System
+    print("1. 🚀 Initializing TimeRAG System...")
+    try:
+        rag = TimeRAGSystem(
+            llm_func=gpt_4o_mini_llm,
+            embedding_func=openai_embedding_func
+        )
+        print("   ✅ System initialization completed successfully")
+    except Exception as e:
+        print(f"   ❌ System initialization failed: {e}")
         return
     
-    # 1. 初始化系統
-    # 所有模型和金鑰都在初始化時設定
-    print("1. 正在初始化 GraphRAGSystem...")
-    rag = GraphRAGSystem(
-        llm_func=gpt_4o_mini_llm,
-        embedding_func=openai_embedding_func
-    )
-    print("系統初始化完成。")
-    
-    # 2. 索引文件
-    print("2. 正在索引文件...")
+    # 2. Index Documents with Temporal Metadata
+    print("\n2. 📄 Indexing documents with temporal metadata...")
     documents = [
-        {"text": "蘋果公司在2023年Q4的iPhone銷量達到8000萬部。", "doc_id": "apple_q4_2023", "metadata": {"quarter": "2023Q4"}},
-        {"text": "到了2024年Q1，蘋果的iPhone銷量因新機型發布，增長至9000萬部。", "doc_id": "apple_q1_2024", "metadata": {"quarter": "2024Q1"}},
-        {"text": "微軟在2024年Q1的雲端業務收入大幅增長了30%。", "doc_id": "ms_q1_2024", "metadata": {"quarter": "2024Q1"}}
+        {
+            "text": "Apple Inc. reported iPhone sales of 80 million units in Q4 2023, showing strong demand for the latest models.", 
+            "doc_id": "apple_q4_2023", 
+            "metadata": {"quarter": "2023Q4"}
+        },
+        {
+            "text": "By Q1 2024, Apple's iPhone sales increased to 90 million units due to new model releases and improved supply chain.", 
+            "doc_id": "apple_q1_2024", 
+            "metadata": {"quarter": "2024Q1"}
+        },
+        {
+            "text": "Microsoft's cloud business revenue grew significantly by 30% in Q1 2024, driven by Azure services and enterprise adoption.", 
+            "doc_id": "ms_q1_2024", 
+            "metadata": {"quarter": "2024Q1"}
+        },
+        {
+            "text": "In Q2 2024, Microsoft continued strong cloud performance with 35% year-over-year growth, expanding into new markets.",
+            "doc_id": "ms_q2_2024",
+            "metadata": {"quarter": "2024Q2"}
+        },
+        {
+            "text": "Apple's services revenue reached $22.3 billion in Q1 2024, representing 16% growth from the previous year.",
+            "doc_id": "apple_services_q1_2024",
+            "metadata": {"quarter": "2024Q1"}
+        }
     ]
     
-    for doc in documents:
-        rag.insert(doc["text"], doc["doc_id"], doc["metadata"])
-        print(f"  - 已索引: {doc['doc_id']}")
+    for i, doc in enumerate(documents, 1):
+        try:
+            rag.insert(doc["text"], doc["doc_id"], doc["metadata"])
+            print(f"   ✅ Indexed [{i}/{len(documents)}]: {doc['doc_id']}")
+        except Exception as e:
+            print(f"   ❌ Failed to index {doc['doc_id']}: {e}")
     
-    # 3. 建立時間連結
-    # 這是完成圖譜建構的關鍵步驟
-    print("\n3. 正在建立時間連結...")
-    rag.build_temporal_links()
-    print("圖譜建構完成。")
+    # 3. Build Temporal Links
+    print("\n3. 🔗 Building temporal connections...")
+    try:
+        rag.build_temporal_links()
+        print("   ✅ Temporal connections built successfully")
+    except Exception as e:
+        print(f"   ❌ Failed to build temporal connections: {e}")
+        return
     
-    # 4. 提出問題
-    question = "蘋果iPhone銷量的趨勢如何？"
-    print(f"4. 提出查詢: {question}\n")
+    # Get system statistics
+    try:
+        stats = rag.get_stats()
+        print(f"\n📊 System Statistics:")
+        print(f"   - Documents indexed: {stats.get('indexed_documents', 0)}")
+        print(f"   - Graph nodes: {stats.get('num_nodes', 0)}")
+        print(f"   - Graph edges: {stats.get('num_edges', 0)}")
+        print(f"   - Stored chunks: {stats.get('stored_chunks', 0)}")
+    except Exception as e:
+        print(f"   ❌ Failed to get stats: {e}")
     
-    # 可選：為本次查詢定義特定參數
-    custom_query_params = QueryParams(
-        top_k=5,
-        similarity_threshold=0.4
+    # 4. Query Examples
+    queries = [
+        "What are the trends in Apple iPhone sales over time?",
+        "How is Microsoft's cloud business performing across quarters?",
+        "Compare Apple and Microsoft's performance in 2024 Q1.",
+        "What is Apple's services revenue trend?"
+    ]
+    
+    for i, question in enumerate(queries, 1):
+        print(f"\n{3+i}. 🔍 Query {i}: {question}")
+        print("-" * 80)
+        
+        # Define query parameters
+        custom_query_params = QueryParams(
+            top_k=8,
+            similarity_threshold=0.2,
+            max_hops=2,
+            final_max_tokens=8000
+        )
+        
+        try:
+            result = rag.query(question, query_params=custom_query_params)
+            
+            # Display answer
+            answer = result.get('answer', 'No answer generated')
+            print(f"📝 Answer:\n{answer}")
+            
+            # Show retrieved context information
+            entities = result.get('retrieved_entities', [])
+            relations = result.get('retrieved_relations', [])
+            chunks = result.get('retrieved_source_chunks', [])
+            
+            print(f"\n📈 Retrieved Context:")
+            print(f"   - Entities: {len(entities)}")
+            if entities:
+                print("     Top entities:")
+                for entity in entities[:3]:
+                    name = entity.get('name', 'Unknown')
+                    entity_type = entity.get('type', 'Unknown')
+                    score = entity.get('score', 0)
+                    print(f"       • {name} ({entity_type}) - Score: {score:.3f}")
+            
+            print(f"   - Relations: {len(relations)}")
+            if relations:
+                print("     Top relations:")
+                for relation in relations[:3]:
+                    source = relation.get('source', 'Unknown')
+                    target = relation.get('target', 'Unknown')
+                    rel_type = relation.get('type', 'Unknown')
+                    score = relation.get('score', 0)
+                    print(f"       • {source} → {target} ({rel_type}) - Score: {score:.3f}")
+            
+            print(f"   - Source chunks: {len(chunks)}")
+            
+            # Token usage statistics
+            token_stats = result.get('token_stats', {})
+            print(f"   - Total tokens: {token_stats.get('total_tokens', 0)}")
+            print(f"   - Entity tokens: {token_stats.get('entities_tokens', 0)}")
+            print(f"   - Relation tokens: {token_stats.get('relations_tokens', 0)}")
+            print(f"   - Chunk tokens: {token_stats.get('chunks_tokens', 0)}")
+            
+        except Exception as e:
+            print(f"   ❌ Error processing query: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    print("\n" + "=" * 60)
+    print("🎉 Demo Completed Successfully!")
+    print("=" * 60)
+    
+    # Show final system statistics
+    try:
+        final_stats = rag.get_stats()
+        print(f"\n📊 Final System State:")
+        for key, value in final_stats.items():
+            print(f"   - {key}: {value}")
+    except Exception as e:
+        print(f"Failed to get final stats: {e}")
+
+
+def demo_batch_processing():
+    """Demonstrate batch processing capabilities"""
+    print("\n" + "=" * 60)
+    print("Batch Processing Demo")
+    print("=" * 60)
+    
+    print("📁 Batch processing allows you to process multiple documents at once.")
+    print("   Example usage:")
+    print("""
+    from timerag.processing import BatchProcessor, BatchProcessingConfig
+    
+    # Configure batch processing
+    config = BatchProcessingConfig(
+        max_workers=4,
+        batch_size=10,
+        supported_formats=['.pdf', '.docx', '.txt', '.json']
     )
     
-    result = rag.query(question, query_params=custom_query_params)
+    # Initialize batch processor
+    batch_processor = BatchProcessor(rag_system, config)
     
-    # 5. 顯示結果
-    print("--- 查詢結果 ---")
-    print(f"答案: {result.get('answer')}")
-    print(f"\nToken 使用統計: {result.get('token_stats')}")
-    print("--- 演示完成 ---")
+    # Process all documents in a directory
+    results = batch_processor.process_directory("./documents/")
+    
+    # Process specific files
+    file_list = ["doc1.pdf", "doc2.docx", "doc3.txt"]
+    results = batch_processor.process_files(file_list)
+    """)
+    print("\n   📝 This would process multiple files concurrently with:")
+    print("      • Automatic file format detection")
+    print("      • Quarter extraction from filenames/content")
+    print("      • Progress tracking and error handling")
+    print("      • Parallel processing for better performance")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+        demo_batch_processing()
+    except KeyboardInterrupt:
+        print("\n\n⏹️  Demo interrupted by user")
+    except Exception as e:
+        print(f"\n❌ Demo failed with error: {e}")
+        import traceback
+        traceback.print_exc()

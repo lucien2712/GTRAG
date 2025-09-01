@@ -1,183 +1,289 @@
 # TimeRAG
 
-一個具備時間感知能力的知識圖譜問答(RAG)框架，特別適用於需要分析和理解跨時間資訊的場景，例如財報分析、市場研究等。
+A temporal-aware Retrieval-Augmented Generation (RAG) framework designed for analyzing and understanding cross-temporal information, particularly suited for financial report analysis, market research, and other time-series data analysis scenarios.
 
 ---
 
-## 核心功能
+## Core Features
 
-- **時間感知圖譜**: 自動建立實體在不同時間點的狀態，並連接成演化路徑。
-- **知識圖譜驅動**: 將非結構化文本轉換為結構化的知識圖譜，實現更精確的資訊檢索。
-- **模型設定集中化**: 所有 LLM 與 Embedding 模型在系統初始化時一次性設定，簡化後續呼叫。
-- **客製化**: 系統的各個環節（實體類型、提示詞、模型參數）都易於配置。
-- **支援自訂模型**: 可輕鬆接入任何自訂的 LLM 和嵌入模型函式。
+- **Temporal-Aware Knowledge Graph**: Automatically builds entity states at different time points and connects them into evolution paths.
+- **Knowledge Graph-Driven**: Converts unstructured text into structured knowledge graphs for precise information retrieval.  
+- **Centralized Model Configuration**: All LLM and embedding models configured once during system initialization, simplifying subsequent calls.
+- **Highly Customizable**: All system components (entity types, prompts, model parameters) are easily configurable.
+- **Custom Model Support**: Easy integration of any custom LLM and embedding model functions.
 
-## 系統架構
+## System Architecture
 
-TimeRAG 的運作流程如下：
+TimeRAG operates through the following workflow:
 
 ```
-文件 -> [1. 文件分塊] -> [2. LLM 資訊擷取] -> [3. 建構知識圖譜] -> [4. 時間連結]
+Documents -> [1. Chunking] -> [2. LLM Extraction] -> [3. Graph Building] -> [4. Temporal Linking]
 
-使用者問題 -> [5. 查詢理解] -> [6. 圖譜檢索] -> [7. 上下文生成] -> [8. LLM 生成答案]
+User Query -> [5. Query Understanding] -> [6. Graph Retrieval] -> [7. Context Assembly] -> [8. LLM Answer Generation]
 ```
 
-1.  **文件分塊**: 將長文件切割成適合處理的小片段。
-2.  **資訊擷取**: 使用 LLM 從每個片段中擷取實體和關係。
-3.  **建構知識圖譜**: 將擷取到的資訊存入 `networkx` 圖結構中。
-4.  **時間連結**: 為同一個實體在不同時間的節點建立「演化」關係邊。
-5.  **查詢理解**: 使用 LLM 分析使用者問題，拆解出關鍵詞和意圖。
-6.  **圖譜檢索**: 在知識圖譜中搜尋與問題最相關的節點和路徑。
-7.  **上下文生成**: 組合檢索到的資訊，並根據 Token 限制進行截斷。
-8.  **生成答案**: 將組合好的上下文和原始問題交給 LLM，生成最終答案。
+### Core Components
 
+1. **Document Chunking**: Split long documents into manageable segments
+2. **Information Extraction**: Use LLM to extract entities and relationships from each segment  
+3. **Knowledge Graph Construction**: Store extracted information in `networkx` graph structure
+4. **Temporal Linking**: Build "evolution" relationship edges between same entities across different time periods
+5. **Query Understanding**: Use LLM to analyze user questions and extract keywords and intent
+6. **Graph Retrieval**: Search knowledge graph for nodes and paths most relevant to the question
+7. **Context Assembly**: Combine retrieved information and truncate based on token limits
+8. **Answer Generation**: Pass assembled context and original question to LLM for final answer
 
-## 快速上手
+## Installation
 
-以下範例展示了如何初始化系統、索引文件並提出查詢。您可以直接執行 `examples/demo.py` 來查看效果。
+```bash
+pip install -r requirements.txt
+```
+
+## Environment Setup
+
+Create a `.env` file with your API key:
+```
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
+## Quick Start
+
+The following example shows how to initialize the system, index documents, and make queries. You can run `examples/demo.py` directly to see it in action.
 
 ```python
-# 節錄自 examples/demo.py
+# Adapted from examples/demo.py
 
 import os
 from dotenv import load_dotenv
-from timerag_system import GraphRAGSystem
-from config import QueryParams
+from timerag import TimeRAGSystem, QueryParams
 
-# 載入 .env 檔案中的環境變數
+# Load environment variables from .env file
 load_dotenv()
 
-# --- 自訂模型函式 (可選) ---
+# --- Custom Model Functions (Optional) ---
 def gpt_4o_mini_llm(system_prompt: str, user_prompt: str) -> str:
-    # ... 此處省略呼叫 OpenAI API 的實作細節 ...
+    # ... Implementation details for calling OpenAI API omitted ...
     pass
 
 def openai_embedding_func(text: str) -> list:
-    # ... 此處省略呼叫 OpenAI Embedding API 的實作細節 ...
+    # ... Implementation details for calling OpenAI Embedding API omitted ...
     pass
 
-# 1. 初始化系統
-# 所有模型與金鑰設定皆在此完成。
-# 如果不傳入 llm_func 或 embedding_func，系統會使用預設的 OpenAI 模型。
-rag = GraphRAGSystem(
+# 1. Initialize System
+# All models and API keys are configured here.
+# If llm_func or embedding_func are not provided, system uses default OpenAI models.
+rag = TimeRAGSystem(
     llm_func=gpt_4o_mini_llm,
     embedding_func=openai_embedding_func
 )
 
-# 2. 插入文件 (Insert)
-# `quarter` (季度) 資訊透過 metadata 傳入，是時間感知的關鍵
+# 2. Insert Documents
+# Quarter information passed through metadata is key for temporal awareness
 documents = [
-    {"text": "蘋果公司在2023年Q4的iPhone銷量達到8000萬部。", "doc_id": "apple_q4_2023", "metadata": {"quarter": "2023Q4"}},
-    {"text": "到了2024年Q1，蘋果的iPhone銷量增長至9000萬部。", "doc_id": "apple_q1_2024", "metadata": {"quarter": "2024Q1"}},
+    {
+        "text": "Apple Inc. iPhone sales reached 80 million units in Q4 2023.", 
+        "doc_id": "apple_q4_2023", 
+        "metadata": {"quarter": "2023Q4"}
+    },
+    {
+        "text": "By Q1 2024, Apple's iPhone sales grew to 90 million units due to new model releases.", 
+        "doc_id": "apple_q1_2024", 
+        "metadata": {"quarter": "2024Q1"}
+    },
 ]
 
 for doc in documents:
     rag.insert(doc["text"], doc["doc_id"], doc["metadata"])
 
-# 3. 建立時間連結
-# 索引完所有文件後，執行此步驟以建立跨時間的關聯
+# 3. Build Temporal Links
+# After indexing all documents, execute this step to create cross-temporal associations
 rag.build_temporal_links()
 
-# 4. 提出問題 (Query)
-question = "蘋果iPhone銷量的趨勢如何？"
+# 4. Query the System
+question = "What are the trends in Apple iPhone sales?"
 result = rag.query(question)
 
-# 5. 查看結果
-print(result.get("answer"))
+# 5. View Results
+print("Answer:", result.get("answer"))
+print("Token Usage:", result.get("token_stats"))
 ```
 
-## 客製化設定
+## Complete Workflow Example
 
-您可以輕易地修改位於 `configs/` 資料夾中的設定檔來客製化系統。
-
--   **實體類型**: 修改 `configs/entity_types.json` 來新增、刪除或修改您想擷取的實體類型及其描述。
-    
--   **提示詞 (Prompts)**: 修改 `configs/prompts.py` 來改變系統與 LLM 互動的方式。例如，您可以修改 `RESULT_SUMMARIZATION` 中的模板，來改變最終答案的語氣或格式。
-
-## 參數設定
-
-### 索引參數 (Chunking)
-
-您可以在初始化 `GraphRAGSystem` 時，透過傳入 `ChunkingConfig` 物件來設定文件分塊的行為。
-
--   `MAX_TOKENS_PER_CHUNK` (int): 每個文字區塊的最大 Token 數量。
--   `OVERLAP_TOKENS` (int): 區塊之間重疊的 Token 數量，用以保留上下文。
-
-**設定範例:**
-
+### Step 1: System Initialization
 ```python
-from config import ChunkingConfig
-from timerag_system import GraphRAGSystem
+from timerag import TimeRAGSystem, QueryParams, ChunkingConfig
 
-# 建立自訂的分塊設定
-# 適合處理較長、需要更多上下文的段落
+# Basic initialization with default models
+rag = TimeRAGSystem()
+
+# Or with custom configuration
 chunk_config = ChunkingConfig(
     MAX_TOKENS_PER_CHUNK=2000,
     OVERLAP_TOKENS=300
 )
 
-# 初始化系統時傳入
-rag = GraphRAGSystem(chunking_config=chunk_config)
-
-# 後續所有 .insert() 都會使用此分塊設定
-rag.insert(...)
-```
-
-### 查詢參數 (Querying)
-
-您可以透過 `QueryParams` 物件來精細地控制查詢時的行為。
-
--   `top_k` (int): 控制從圖譜中檢索回的實體/關係數量上限。
--   `similarity_threshold` (float): 語意相似度的門檻值，只有高於此分數的結果會被考慮。
--   `max_hops` (int): 在圖中進行多跳擴展時，探索的最大步數。
--   `final_max_tokens` (int): 最終組合給 LLM 的總 Token 上限，用以控制成本與避免超出模型限制。
-
-有兩種方式可以設定這些參數：
-
-**1. 初始化時設定 (全域預設)**
-
-在建立 `GraphRAGSystem` 物件時傳入 `query_params`，這將會成為所有查詢的預設值。
-
-```python
-from config import QueryParams
-from timerag_system import GraphRAGSystem
-
-# 建立一個自訂的參數設定
-default_params = QueryParams(
+query_params = QueryParams(
     top_k=15,
     similarity_threshold=0.3,
-    final_max_tokens=10000
+    max_hops=4
 )
 
-# 初始化系統時傳入
-rag = GraphRAGSystem(query_params=default_params)
-
-# 後續所有查詢都會使用這套預設參數
-result = rag.query("...") 
+rag = TimeRAGSystem(
+    chunking_config=chunk_config,
+    query_params=query_params
+)
 ```
 
-**2. 查詢時設定 (單次有效)**
-
-在呼叫 `.query()` 方法時傳入 `query_params`，這次的設定將只對當次查詢有效，不會影響全域預設值。
-
+### Step 2: Document Processing
 ```python
-# 假設 rag 已經被初始化
-rag = GraphRAGSystem() 
+# Financial report example
+documents = [
+    {
+        "text": "Microsoft reported cloud revenue growth of 30% in Q1 2024, driven by Azure services expansion.",
+        "doc_id": "msft_q1_2024_earnings",
+        "metadata": {"quarter": "2024Q1"}
+    },
+    {
+        "text": "In Q2 2024, Microsoft's cloud business continued strong performance with 35% growth year-over-year.",
+        "doc_id": "msft_q2_2024_earnings", 
+        "metadata": {"quarter": "2024Q2"}
+    }
+]
 
-# 針對一個複雜問題，使用更寬鬆的檢索參數
-specific_params = QueryParams(
+# Insert documents
+for doc in documents:
+    rag.insert(doc["text"], doc["doc_id"], doc["metadata"])
+    
+# Build temporal connections (essential step)
+rag.build_temporal_links()
+```
+
+### Step 3: Querying
+```python
+# Query with default parameters
+result = rag.query("How is Microsoft's cloud business performing over time?")
+
+# Query with custom parameters
+custom_params = QueryParams(
     top_k=20,
-    max_hops=4 
+    similarity_threshold=0.2,
+    max_hops=3
 )
 
 result = rag.query(
-    "一個需要深度分析的複雜問題...",
-    query_params=specific_params
+    "Compare Microsoft's cloud growth trends across quarters",
+    query_params=custom_params
 )
+
+# Access comprehensive results
+answer = result["answer"]
+entities = result["retrieved_entities"] 
+relations = result["retrieved_relations"]
+source_chunks = result["retrieved_source_chunks"]
+token_stats = result["token_stats"]
 ```
 
-## 其他範例
+### Step 4: Advanced Usage
+```python
+# Save/load knowledge graph
+rag.save_graph("my_knowledge_graph.pkl")
 
-在 `examples/` 資料夾中，您可以找到更完整的程式碼：
+# Later session
+new_rag = TimeRAGSystem()
+new_rag.load_graph("my_knowledge_graph.pkl")
 
--   `demo.py`: 包含一個完整、可執行的範例，展示了初始化、索引、查詢的完整流程。
+# Get system statistics
+stats = rag.get_stats()
+print(f"Indexed {stats['indexed_documents']} documents")
+print(f"Graph has {stats['num_nodes']} nodes, {stats['num_edges']} edges")
+```
+
+## Configuration
+
+You can easily customize the system by modifying configuration files in the `timerag/config/` directory:
+
+- **Entity Types**: Modify `configs/entity_types.json` to add, remove, or modify entity types and their descriptions
+- **Prompts**: Modify `configs/prompts.py` to change how the system interacts with LLMs
+- **Parameters**: Use `QueryParams` and `ChunkingConfig` classes for runtime parameter adjustment
+
+### Entity Types Configuration
+```json
+{
+  "entity_types": {
+    "COMPANY": {
+      "description_en": "Companies, enterprises, organizations",
+      "examples": ["Apple", "Microsoft", "Google"],
+      "extraction_hints": ["Company name", "Corporation", "Enterprise"]
+    }
+  }
+}
+```
+
+### Custom Prompt Templates
+```python
+# In configs/prompts.py
+RAG_RESPONSE_PROMPT = """
+Generate a comprehensive response based on:
+
+### Entities
+{entities}
+
+### Relationships
+{relationships}  
+
+### Document Evidence
+{chunks}
+
+Answer the user's question: {user_query}
+"""
+```
+
+## Key Implementation Notes
+
+1. **Temporal Metadata**: Always include `quarter` information in document metadata for time-aware functionality
+2. **Two-Step Process**: Document insertion must be followed by `build_temporal_links()` to complete graph construction
+3. **Custom Models**: The system supports custom LLM and embedding functions passed during initialization
+4. **Token Management**: Automatic token limit management prevents exceeding model context limits
+5. **Graph Storage**: Uses NetworkX for graph operations - no external graph database required
+
+## Package Structure
+
+```
+timerag/
+├── core/              # Core system orchestrator
+├── config/            # Configuration management
+├── extractors/        # LLM-based information extraction
+├── graph/            # Knowledge graph construction and retrieval
+├── processing/       # Document chunking and token management
+└── storage/          # Vector database integration
+```
+
+## Development
+
+### Running Tests
+```bash
+# No test suite currently configured
+```
+
+### Running Examples
+```bash
+python examples/demo.py
+```
+
+### Custom Development
+```python
+import timerag
+
+# Access all components
+system = timerag.TimeRAGSystem()
+extractor = timerag.LLMExtractor()
+builder = timerag.GraphBuilder()
+retriever = timerag.GraphRetriever(builder, extractor)
+```
+
+## Requirements
+
+- Python 3.8+
+- OpenAI API key
+- Dependencies: `openai`, `networkx`, `sentence-transformers`, `numpy`, `tiktoken`, `pandas`, `textract`, `python-docx`
