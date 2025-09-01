@@ -1,0 +1,8 @@
+openai
+networkx
+sentence-transformers
+numpy
+tiktoken
+pandas
+textract
+python-docx
