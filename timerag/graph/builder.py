@@ -121,7 +121,9 @@ class GraphBuilder:
                     source_docs.append(entity.source_doc_id)
 
                 # 3. Recalculate embedding for merged description
-                new_embedding = self.encode(new_description)
+                # Combine entity name and description for richer embedding
+                entity_text = f"{entity.name}\n{new_description}"
+                new_embedding = self.encode(entity_text)
 
                 # 4. Update node attributes
                 self.graph.nodes[node_id]['description'] = new_description
@@ -146,7 +148,9 @@ class GraphBuilder:
 
             else:
                 # Node doesn't exist, add normally
-                embedding = self.encode(entity.description)
+                # Combine entity name and description for richer embedding
+                entity_text = f"{entity.name}\n{entity.description}"
+                embedding = self.encode(entity_text)
                 
                 self.graph.add_node(
                     node_id,
@@ -181,41 +185,48 @@ class GraphBuilder:
         for relation in relations:
             source_id = f"{relation.source}__{relation.metadata.get('quarter', 'Q_UNKNOWN')}"
             target_id = f"{relation.target}__{relation.metadata.get('quarter', 'Q_UNKNOWN')}"
-            key = relation.type
+            
+            # Use a single key for all relations between two nodes
+            key = "relation"
 
             if self.graph.has_node(source_id) and self.graph.has_node(target_id):
                 if self.graph.has_edge(source_id, target_id, key=key):
-                    # Edge exists, perform merge
+                    # Edge exists, concatenate multiple relations
                     existing_data = self.graph.get_edge_data(source_id, target_id, key=key)
                     
-                    # 1. Merge descriptions
-                    new_description = (existing_data.get('description', '') + 
-                                     "\n---\n" + 
-                                     relation.description)
+                    # 1. Concatenate relation keywords  
+                    existing_keywords = existing_data.get('relation_keywords', [])
+                    if relation.keywords not in existing_keywords:
+                        existing_keywords.append(relation.keywords)
                     
-                    # 2. Merge evidence
-                    new_evidence = (existing_data.get('evidence', '') + 
-                                  "\n---\n" + 
-                                  relation.evidence)
+                    # 2. Concatenate descriptions with relation keywords prefix
+                    existing_desc = existing_data.get('description', '')
+                    new_relation_desc = f"{relation.keywords}: {relation.description}"
+                    new_description = f"{existing_desc}\n{new_relation_desc}" if existing_desc else new_relation_desc
+                    
+                    # 3. Concatenate evidence
+                    existing_evidence = existing_data.get('evidence', '')
+                    new_evidence = f"{existing_evidence}\n{relation.evidence}" if existing_evidence else relation.evidence
 
-                    # 3. Update edge attributes
+                    # 4. Update edge attributes
+                    self.graph[source_id][target_id][key]['relation_keywords'] = existing_keywords
                     self.graph[source_id][target_id][key]['description'] = new_description
                     self.graph[source_id][target_id][key]['evidence'] = new_evidence
-                    logger.info(f"Merged relation edge: {source_id} -> {target_id} ({key})")
+                    logger.info(f"Concatenated relation edge: {source_id} -> {target_id} (added {relation.keywords})")
 
                 else:
-                    # Edge doesn't exist, add normally
+                    # Edge doesn't exist, create new edge
                     self.graph.add_edge(
                         source_id,
                         target_id,
                         key=key,
-                        relation_type=relation.type,
-                        description=relation.description,
+                        relation_keywords=[relation.keywords],  # Store as list for future concatenation
+                        description=f"{relation.keywords}: {relation.description}",
                         evidence=relation.evidence,
                         source_doc_id=relation.source_doc_id,
                         **relation.metadata
                     )
-                    logger.debug(f"Added relation edge: {source_id} -> {target_id} ({key})")
+                    logger.debug(f"Added relation edge: {source_id} -> {target_id} ({relation.keywords})")
             else:
                 missing_nodes = []
                 if not self.graph.has_node(source_id):
@@ -251,9 +262,8 @@ class GraphBuilder:
                     source_id,
                     target_id,
                     key="temporal_evolution",
-                    relation_type="temporal_evolution",
-                    description=f"{entity_name} evolution from {source_q} to {target_q}",
-                    edge_type="temporal"
+                    relation_keywords=["temporal_evolution"],
+                    description=f"temporal_evolution: {entity_name} evolution from {source_q} to {target_q}"
                 )
                 temporal_edges_added += 1
         
@@ -262,23 +272,24 @@ class GraphBuilder:
     def get_graph_stats(self) -> Dict[str, Any]:
         """Get graph statistics."""
         node_types = {}
-        edge_types = {}
+        relation_types = {}
         
         # Count node types
         for node_id, data in self.graph.nodes(data=True):
             node_type = data.get('node_type', 'unknown')
             node_types[node_type] = node_types.get(node_type, 0) + 1
         
-        # Count edge types
+        # Count relation keywords across all edges
         for u, v, data in self.graph.edges(data=True):
-            edge_type = data.get('relation_type', 'unknown')
-            edge_types[edge_type] = edge_types.get(edge_type, 0) + 1
+            edge_relation_keywords = data.get('relation_keywords', ['unknown'])
+            for keywords in edge_relation_keywords:
+                relation_types[keywords] = relation_types.get(keywords, 0) + 1
         
         stats = {
             "num_nodes": self.graph.number_of_nodes(),
             "num_edges": self.graph.number_of_edges(),
             "node_types": node_types,
-            "edge_types": edge_types,
+            "relation_types": relation_types,
             "has_vector_store": self.vector_store is not None
         }
         

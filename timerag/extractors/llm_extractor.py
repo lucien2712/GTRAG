@@ -57,7 +57,7 @@ class Relation:
     """Define data structure for an extracted relationship."""
     source: str
     target: str
-    type: str
+    keywords: str  # relationship_keywords from LLM extraction
     description: str
     evidence: str  # Direct evidence from original text
     source_doc_id: str
@@ -68,7 +68,7 @@ class Relation:
         return {
             "source": self.source,
             "target": self.target,
-            "type": self.type,
+            "keywords": self.keywords,  # relationship_keywords
             "description": self.description,
             "evidence": self.evidence,
             "source_doc_id": self.source_doc_id,
@@ -263,7 +263,7 @@ class LLMExtractor:
                 relation = Relation(
                     source=parts[1].strip('"').strip("'"),
                     target=parts[2].strip('"').strip("'"),
-                    type=parts[3].strip('"').strip("'"),
+                    keywords=parts[3].strip('"').strip("'"),  # relationship_keywords
                     description=parts[4].strip('"').strip("'"),
                     evidence=text[:200] + "..." if len(text) > 200 else text,  # Truncate evidence
                     source_doc_id=doc_id,

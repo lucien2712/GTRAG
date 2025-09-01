@@ -198,12 +198,13 @@ class GraphRetriever:
         
         candidates = []
         for u, v, data in self.graph.edges(data=True):
-            if data.get('relation_type') == 'temporal_evolution':
+            relation_keywords = data.get('relation_keywords', [])
+            if 'temporal_evolution' in relation_keywords:
                 continue  # Skip temporal edges in content search
             
             if len(query_embedding) > 0:
-                # Use embedding similarity
-                relation_text = f"{data.get('relation_type', '')} {data.get('description', '')}"
+                # Use embedding similarity - description already contains relation types
+                relation_text = data.get('description', '')
                 relation_embedding = self.graph_builder.encode(relation_text)
                 
                 if len(relation_embedding) > 0:
@@ -212,7 +213,7 @@ class GraphRetriever:
                         candidates.append({
                             'source': self.graph.nodes[u].get('name', u),
                             'target': self.graph.nodes[v].get('name', v),
-                            'type': data.get('relation_type', 'unknown'),
+                            'type': ', '.join(relation_keywords) if relation_keywords else 'unknown',
                             'description': data.get('description', ''),
                             'score': similarity,
                             'metadata': {
@@ -223,15 +224,16 @@ class GraphRetriever:
                             }
                         })
             else:
-                # Fallback to text matching
-                relation_text = f"{data.get('relation_type', '')} {data.get('description', '')}".lower()
+                # Fallback to text matching - description already contains relation types
+                relation_text = data.get('description', '').lower()
                 match_score = sum(1 for keyword in keywords if keyword.lower() in relation_text)
                 
                 if match_score > 0:
+                    relation_keywords = data.get('relation_keywords', [])
                     candidates.append({
                         'source': self.graph.nodes[u].get('name', u),
                         'target': self.graph.nodes[v].get('name', v),
-                        'type': data.get('relation_type', 'unknown'),
+                        'type': ', '.join(relation_keywords) if relation_keywords else 'unknown',
                         'description': data.get('description', ''),
                         'score': match_score / len(keywords),
                         'metadata': {
@@ -247,9 +249,18 @@ class GraphRetriever:
 
     def _multi_hop_expansion(self, entities: List[Dict], relations: List[Dict], 
                            max_hops: int = 2, max_neighbors_per_hop: int = 3) -> Tuple[List[Dict], List[Dict]]:
-        """Perform multi-hop expansion to discover connected information."""
+        """
+        Perform multi-hop expansion with comprehensive scoring considering:
+        1. Node similarity (semantic similarity to query)
+        2. Edge similarity (edge relevance to query)
+        3. Node centrality (degree, betweenness, pagerank)
+        4. Edge centrality (edge betweenness)
+        """
         if not entities:
             return [], []
+        
+        # Pre-calculate centrality measures for efficient lookup
+        centrality_cache = self._calculate_centrality_measures()
         
         visited_nodes = set()
         expanded_entities = []
@@ -264,61 +275,264 @@ class GraphRetriever:
         
         for hop in range(max_hops):
             next_nodes = []
+            hop_candidates = []  # Store candidates for this hop to rank them
             
             for node_id in current_nodes:
                 if not self.graph.has_node(node_id):
                     continue
                 
-                # Get neighbors with importance scoring
-                neighbors = list(self.graph.neighbors(node_id))[:max_neighbors_per_hop]
+                # Get all neighbors and calculate comprehensive scores
+                neighbors = list(self.graph.neighbors(node_id))
                 
                 for neighbor_id in neighbors:
                     if neighbor_id in visited_nodes:
                         continue
                     
                     neighbor_data = self.graph.nodes[neighbor_id]
-                    if neighbor_data.get('node_type') == 'entity':
-                        # Add expanded entity
-                        expanded_entities.append({
-                            'name': neighbor_data.get('name', neighbor_id),
-                            'type': neighbor_data.get('type', 'unknown'),
-                            'description': neighbor_data.get('description', ''),
-                            'score': 0.5 - (hop * 0.1),  # Decay score by hop distance
+                    if neighbor_data.get('node_type') != 'entity':
+                        continue
+                    
+                    # Calculate comprehensive neighbor score
+                    neighbor_score = self._calculate_neighbor_importance(
+                        node_id, neighbor_id, neighbor_data, centrality_cache, hop
+                    )
+                    
+                    hop_candidates.append({
+                        'neighbor_id': neighbor_id,
+                        'neighbor_data': neighbor_data,
+                        'source_id': node_id,
+                        'score': neighbor_score,
+                        'hop_distance': hop + 1
+                    })
+            
+            # Sort candidates by comprehensive score and select top ones
+            hop_candidates.sort(key=lambda x: x['score'], reverse=True)
+            selected_candidates = hop_candidates[:max_neighbors_per_hop * len(current_nodes)]
+            
+            for candidate in selected_candidates:
+                neighbor_id = candidate['neighbor_id']
+                neighbor_data = candidate['neighbor_data']
+                source_id = candidate['source_id']
+                
+                # Add expanded entity
+                expanded_entities.append({
+                    'name': neighbor_data.get('name', neighbor_id),
+                    'type': neighbor_data.get('type', 'unknown'),
+                    'description': neighbor_data.get('description', ''),
+                    'score': candidate['score'],
+                    'metadata': {
+                        'quarter': neighbor_data.get('quarter'),
+                        'node_id': neighbor_id,
+                        'chunk_id': neighbor_data.get('chunk_id'),
+                        'hop_distance': candidate['hop_distance'],
+                        'centrality_score': centrality_cache['nodes'].get(neighbor_id, 0.0)
+                    }
+                })
+                
+                # Add connecting relation with edge scoring
+                if self.graph.has_edge(source_id, neighbor_id):
+                    edge_data = self.graph.get_edge_data(source_id, neighbor_id)
+                    for key, relation_data in edge_data.items():
+                        edge_score = self._calculate_edge_importance(
+                            source_id, neighbor_id, relation_data, centrality_cache, hop
+                        )
+                        
+                        relation_keywords = relation_data.get('relation_keywords', [])
+                        expanded_relations.append({
+                            'source': self.graph.nodes[source_id].get('name', source_id),
+                            'target': neighbor_data.get('name', neighbor_id),
+                            'type': ', '.join(relation_keywords) if relation_keywords else 'unknown',
+                            'description': relation_data.get('description', ''),
+                            'score': edge_score,
                             'metadata': {
-                                'quarter': neighbor_data.get('quarter'),
-                                'node_id': neighbor_id,
-                                'chunk_id': neighbor_data.get('chunk_id'),
-                                'hop_distance': hop + 1
+                                'quarter': relation_data.get('quarter'),
+                                'source_id': source_id,
+                                'target_id': neighbor_id,
+                                'chunk_id': relation_data.get('chunk_id'),
+                                'hop_distance': candidate['hop_distance'],
+                                'edge_centrality': centrality_cache['edges'].get((source_id, neighbor_id), 0.0)
                             }
                         })
-                    
-                    # Add connecting relation
-                    if self.graph.has_edge(node_id, neighbor_id):
-                        edge_data = self.graph.get_edge_data(node_id, neighbor_id)
-                        for key, relation_data in edge_data.items():
-                            expanded_relations.append({
-                                'source': self.graph.nodes[node_id].get('name', node_id),
-                                'target': neighbor_data.get('name', neighbor_id),
-                                'type': relation_data.get('relation_type', 'unknown'),
-                                'description': relation_data.get('description', ''),
-                                'score': 0.4 - (hop * 0.1),
-                                'metadata': {
-                                    'quarter': relation_data.get('quarter'),
-                                    'source_id': node_id,
-                                    'target_id': neighbor_id,
-                                    'chunk_id': relation_data.get('chunk_id'),
-                                    'hop_distance': hop + 1
-                                }
-                            })
-                    
-                    next_nodes.append(neighbor_id)
-                    visited_nodes.add(neighbor_id)
+                
+                next_nodes.append(neighbor_id)
+                visited_nodes.add(neighbor_id)
             
             current_nodes = next_nodes
             if not current_nodes:
                 break
         
         return expanded_entities, expanded_relations
+
+    def _calculate_centrality_measures(self) -> Dict[str, Dict]:
+        """
+        Calculate centrality measures for nodes and edges.
+        Returns cached centrality scores for efficient lookup.
+        """
+        try:
+            import networkx as nx
+        except ImportError:
+            logger.warning("NetworkX not available for centrality calculations. Using fallback scoring.")
+            return {'nodes': {}, 'edges': {}}
+        
+        centrality_cache = {'nodes': {}, 'edges': {}}
+        
+        # Node centrality measures
+        try:
+            degree_centrality = nx.degree_centrality(self.graph)
+            betweenness_centrality = nx.betweenness_centrality(self.graph, k=min(100, self.graph.number_of_nodes()))
+            pagerank = nx.pagerank(self.graph, max_iter=50)
+            
+            # Combine centrality measures with weights from config
+            from ..config.settings import ScoreWeights
+            weights = ScoreWeights()
+            
+            for node_id in self.graph.nodes():
+                combined_centrality = (
+                    degree_centrality.get(node_id, 0.0) * weights.DEGREE_WEIGHT +
+                    betweenness_centrality.get(node_id, 0.0) * weights.EDGE_WEIGHT +
+                    pagerank.get(node_id, 0.0) * weights.SEMANTIC_WEIGHT
+                )
+                centrality_cache['nodes'][node_id] = combined_centrality
+            
+        except Exception as e:
+            logger.warning(f"Node centrality calculation failed: {e}")
+            # Fallback: use simple degree centrality
+            for node_id in self.graph.nodes():
+                degree = self.graph.degree(node_id)
+                centrality_cache['nodes'][node_id] = degree / max(self.graph.number_of_nodes(), 1)
+        
+        # Edge centrality measures (edge betweenness)
+        try:
+            edge_betweenness = nx.edge_betweenness_centrality(self.graph, k=min(50, self.graph.number_of_nodes()))
+            for edge, centrality in edge_betweenness.items():
+                centrality_cache['edges'][edge] = centrality
+                # Also add reverse edge for undirected behavior
+                centrality_cache['edges'][(edge[1], edge[0])] = centrality
+                
+        except Exception as e:
+            logger.warning(f"Edge centrality calculation failed: {e}")
+            # Fallback: use constant edge weight
+            for edge in self.graph.edges():
+                centrality_cache['edges'][edge] = 0.1
+        
+        return centrality_cache
+
+    def _calculate_neighbor_importance(self, source_id: str, neighbor_id: str, 
+                                     neighbor_data: Dict, centrality_cache: Dict, hop: int) -> float:
+        """
+        Calculate comprehensive neighbor importance score considering:
+        1. Node similarity (semantic similarity)
+        2. Node centrality (combined centrality measures)
+        3. Hop distance decay
+        4. Temporal relevance
+        """
+        from ..config.settings import ScoreWeights
+        weights = ScoreWeights()
+        
+        # 1. Node similarity score (semantic)
+        neighbor_embedding = neighbor_data.get('embedding')
+        if neighbor_embedding is not None and len(neighbor_embedding) > 0:
+            # Calculate similarity to source node
+            source_embedding = self.graph.nodes[source_id].get('embedding')
+            if source_embedding is not None and len(source_embedding) > 0:
+                semantic_score = self._calculate_similarity(
+                    np.array(neighbor_embedding), np.array(source_embedding)
+                )
+            else:
+                semantic_score = 0.3  # Default semantic score
+        else:
+            semantic_score = 0.3
+        
+        # 2. Node centrality score
+        centrality_score = centrality_cache['nodes'].get(neighbor_id, 0.0)
+        
+        # 3. Hop distance decay
+        hop_penalty = 0.8 ** hop  # Exponential decay
+        
+        # 4. Temporal relevance (bonus for temporal evolution edges)
+        temporal_bonus = 1.0
+        if self.graph.has_edge(source_id, neighbor_id):
+            edge_data = self.graph.get_edge_data(source_id, neighbor_id)
+            for key, relation_data in edge_data.items():
+                relation_keywords = relation_data.get('relation_keywords', [])
+                if 'temporal_evolution' in relation_keywords:
+                    temporal_bonus = 1.2  # 20% bonus for temporal connections
+                    break
+        
+        # Combine all factors
+        importance_score = (
+            semantic_score * weights.SEMANTIC_WEIGHT +
+            centrality_score * weights.DEGREE_WEIGHT +
+            0.2 * weights.EDGE_WEIGHT  # Base connectivity score
+        ) * hop_penalty * temporal_bonus
+        
+        return min(importance_score, 1.0)  # Cap at 1.0
+
+    def _calculate_edge_importance(self, source_id: str, target_id: str, 
+                                 edge_data: Dict, centrality_cache: Dict, hop: int) -> float:
+        """
+        Calculate comprehensive edge importance score considering:
+        1. Edge similarity (relation semantic relevance)
+        2. Edge centrality (edge betweenness centrality)
+        3. Edge type importance
+        4. Hop distance decay
+        """
+        from ..config.settings import ScoreWeights
+        weights = ScoreWeights()
+        
+        # 1. Edge semantic relevance (based on concatenated relations embedding similarity)  
+        relation_keywords = edge_data.get('relation_keywords', [])
+        relation_desc = edge_data.get('description', '')
+        
+        # For concatenated relations, the description already includes relation keywords
+        # So we can directly use the description which contains all relation information
+        relation_text = relation_desc if relation_desc else ""
+        
+        if len(relation_text) > 0:
+            # Calculate relation embedding and compare with query context
+            relation_embedding = self.graph_builder.encode(relation_text)
+            if len(relation_embedding) > 0:
+                # Compare with source and target node embeddings to get contextual relevance
+                source_embedding = self.graph.nodes[source_id].get('embedding')
+                target_embedding = self.graph.nodes[target_id].get('embedding')
+                
+                semantic_scores = []
+                if source_embedding is not None and len(source_embedding) > 0:
+                    source_sim = self._calculate_similarity(
+                        np.array(relation_embedding), np.array(source_embedding)
+                    )
+                    semantic_scores.append(source_sim)
+                
+                if target_embedding is not None and len(target_embedding) > 0:
+                    target_sim = self._calculate_similarity(
+                        np.array(relation_embedding), np.array(target_embedding)
+                    )
+                    semantic_scores.append(target_sim)
+                
+                # Use average similarity if we have embeddings, otherwise fallback
+                semantic_score = np.mean(semantic_scores) if semantic_scores else 0.3
+            else:
+                semantic_score = 0.3  # Fallback when encoding fails
+        else:
+            semantic_score = 0.2  # Very low score for empty descriptions
+        
+        # 2. Edge centrality score
+        edge_centrality = centrality_cache['edges'].get((source_id, target_id), 0.0)
+        
+        # 3. No relation type importance weighting - treat all relations equally
+        type_importance = 0.5  # Neutral importance for all relation types
+        
+        # 4. Hop distance decay
+        hop_penalty = 0.7 ** hop
+        
+        # Combine all factors
+        edge_score = (
+            semantic_score * weights.SEMANTIC_WEIGHT +
+            edge_centrality * weights.EDGE_WEIGHT +
+            type_importance * weights.DEGREE_WEIGHT
+        ) * hop_penalty
+        
+        return min(edge_score, 1.0)  # Cap at 1.0
 
     def _calculate_similarity(self, embedding1: np.ndarray, embedding2: np.ndarray) -> float:
         """Calculate cosine similarity between two embeddings."""

@@ -258,32 +258,3 @@ timerag/
 ├── processing/       # Document chunking and token management
 └── storage/          # Vector database integration
 ```
-
-## Development
-
-### Running Tests
-```bash
-# No test suite currently configured
-```
-
-### Running Examples
-```bash
-python examples/demo.py
-```
-
-### Custom Development
-```python
-import timerag
-
-# Access all components
-system = timerag.TimeRAGSystem()
-extractor = timerag.LLMExtractor()
-builder = timerag.GraphBuilder()
-retriever = timerag.GraphRetriever(builder, extractor)
-```
-
-## Requirements
-
-- Python 3.8+
-- OpenAI API key
-- Dependencies: `openai`, `networkx`, `sentence-transformers`, `numpy`, `tiktoken`, `pandas`, `textract`, `python-docx`
