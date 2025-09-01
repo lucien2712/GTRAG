@@ -1,16 +1,42 @@
 # TimeRAG
 
-A temporal-aware Retrieval-Augmented Generation (RAG) framework designed for analyzing and understanding cross-temporal information, particularly suited for financial report analysis, market research, and other time-series data analysis scenarios.
+A **temporal-aware Retrieval-Augmented Generation (RAG)** framework that specializes in analyzing time-series data across multiple documents. Perfect for financial reports, market research, and any scenario requiring cross-temporal analysis.
 
----
+## 🚀 Quick Start
 
-## Core Features
+```python
+from timerag import TimeRAGSystem
 
-- **Temporal-Aware Knowledge Graph**: Automatically builds entity states at different time points and connects them into evolution paths.
-- **Knowledge Graph-Driven**: Converts unstructured text into structured knowledge graphs for precise information retrieval.  
-- **Centralized Model Configuration**: All LLM and embedding models configured once during system initialization, simplifying subsequent calls.
-- **Highly Customizable**: All system components (entity types, prompts, model parameters) are easily configurable.
-- **Custom Model Support**: Easy integration of any custom LLM and embedding model functions.
+# 1. Initialize system
+rag = TimeRAGSystem()
+
+# 2. Index documents with temporal metadata
+rag.insert(
+    text="Apple reported iPhone sales of 80M units in Q4 2023.", 
+    doc_id="apple_q4_2023", 
+    metadata={"quarter": "2023Q4"}
+)
+rag.insert(
+    text="Apple's iPhone sales grew to 90M units in Q1 2024.", 
+    doc_id="apple_q1_2024", 
+    metadata={"quarter": "2024Q1"}
+)
+
+# 3. Build temporal connections
+rag.build_temporal_links()
+
+# 4. Query the system
+result = rag.query("What are the trends in Apple iPhone sales over time?")
+print(result["answer"])
+```
+
+## ✨ Core Features
+
+- **🕒 Temporal-Aware**: Automatically tracks entity evolution across time periods
+- **🧠 Knowledge Graph**: Converts text into structured, queryable knowledge graphs  
+- **🎯 Smart Retrieval**: Multi-hop graph traversal with semantic similarity
+- **⚙️ Highly Customizable**: Configurable entity types, prompts, and models
+- **🔌 Custom Model Support**: Easy integration with any LLM or embedding model
 
 ## System Architecture
 
@@ -46,215 +72,298 @@ Create a `.env` file with your API key:
 OPENAI_API_KEY=your_openai_api_key_here
 ```
 
-## Quick Start
+## 📖 How to Use: Index and Query
 
-The following example shows how to initialize the system, index documents, and make queries. You can run `examples/demo.py` directly to see it in action.
+### 🔍 **Method 1: Basic Usage**
 
 ```python
-# Adapted from examples/demo.py
+from timerag import TimeRAGSystem
 
-import os
-from dotenv import load_dotenv
-from timerag import TimeRAGSystem, QueryParams
+# Initialize system (uses OpenAI by default)
+rag = TimeRAGSystem()
 
-# Load environment variables from .env file
-load_dotenv()
-
-# --- Custom Model Functions (Optional) ---
-def gpt_4o_mini_llm(system_prompt: str, user_prompt: str) -> str:
-    # ... Implementation details for calling OpenAI API omitted ...
-    pass
-
-def openai_embedding_func(text: str) -> list:
-    # ... Implementation details for calling OpenAI Embedding API omitted ...
-    pass
-
-# 1. Initialize System
-# All models and API keys are configured here.
-# If llm_func or embedding_func are not provided, system uses default OpenAI models.
-rag = TimeRAGSystem(
-    llm_func=gpt_4o_mini_llm,
-    embedding_func=openai_embedding_func
+# Index documents - quarter metadata is essential for temporal analysis
+rag.insert(
+    text="Microsoft cloud revenue grew 30% in Q1 2024, driven by Azure expansion.",
+    doc_id="msft_q1_2024",
+    metadata={"quarter": "2024Q1"}  # 👈 This is the key for temporal awareness
 )
 
-# 2. Insert Documents
-# Quarter information passed through metadata is key for temporal awareness
+rag.insert(
+    text="Microsoft cloud continued strong growth at 35% in Q2 2024.",
+    doc_id="msft_q2_2024", 
+    metadata={"quarter": "2024Q2"}
+)
+
+# Build temporal connections (required after indexing)
+rag.build_temporal_links()
+
+# Query with natural language
+result = rag.query("How is Microsoft's cloud business performing over time?")
+print(result["answer"])
+```
+
+### 🎛️ **Method 2: Custom Configuration**
+
+```python
+from timerag import TimeRAGSystem, QueryParams
+
+# Custom LLM function (optional)
+def my_llm_function(system_prompt: str, user_prompt: str) -> str:
+    # Your custom LLM implementation
+    # Return JSON string for extraction, plain text for final answers
+    pass
+
+def my_embedding_function(text: str) -> list:
+    # Your custom embedding implementation
+    # Return list of floats
+    pass
+
+# Initialize with custom models
+rag = TimeRAGSystem(
+    llm_func=my_llm_function,
+    embedding_func=my_embedding_function
+)
+
+# Index multiple documents efficiently
 documents = [
-    {
-        "text": "Apple Inc. iPhone sales reached 80 million units in Q4 2023.", 
-        "doc_id": "apple_q4_2023", 
-        "metadata": {"quarter": "2023Q4"}
-    },
-    {
-        "text": "By Q1 2024, Apple's iPhone sales grew to 90 million units due to new model releases.", 
-        "doc_id": "apple_q1_2024", 
-        "metadata": {"quarter": "2024Q1"}
-    },
+    {"text": "...", "doc_id": "doc1", "metadata": {"quarter": "2023Q4"}},
+    {"text": "...", "doc_id": "doc2", "metadata": {"quarter": "2024Q1"}},
+    {"text": "...", "doc_id": "doc3", "metadata": {"quarter": "2024Q2"}},
 ]
 
 for doc in documents:
     rag.insert(doc["text"], doc["doc_id"], doc["metadata"])
 
-# 3. Build Temporal Links
-# After indexing all documents, execute this step to create cross-temporal associations
 rag.build_temporal_links()
 
-# 4. Query the System
-question = "What are the trends in Apple iPhone sales?"
-result = rag.query(question)
+# Query with custom parameters
+custom_params = QueryParams(
+    top_k=15,                    # Retrieve top 15 results
+    similarity_threshold=0.2,    # Lower threshold = more results
+    max_hops=3,                  # Maximum graph traversal hops
+    final_max_tokens=8000        # Context size limit
+)
 
-# 5. View Results
-print("Answer:", result.get("answer"))
-print("Token Usage:", result.get("token_stats"))
+result = rag.query(
+    "Compare performance trends across all quarters",
+    query_params=custom_params
+)
 ```
 
-## Complete Workflow Example
+### 📊 **Method 3: Complete Result Analysis**
 
-### Step 1: System Initialization
+```python
+# Query returns comprehensive information
+result = rag.query("What are the key business trends?")
+
+# Main answer
+answer = result["answer"]
+
+# Retrieved context components  
+entities = result["retrieved_entities"]       # Extracted entities
+relations = result["retrieved_relations"]     # Entity relationships  
+chunks = result["retrieved_source_chunks"]    # Original text segments
+
+# System metrics
+token_stats = result["token_stats"]
+print(f"Used {token_stats['total_tokens']} tokens")
+print(f"Retrieved {len(entities)} entities, {len(relations)} relations")
+
+# Detailed entity information
+for entity in entities[:3]:  # Show top 3
+    print(f"Entity: {entity['name']} ({entity['type']})")
+    print(f"Score: {entity['score']:.3f}")
+    print(f"Description: {entity['description']}")
+
+# Relationship information
+for relation in relations[:3]:  # Show top 3
+    print(f"Relation: {relation['source']} → {relation['target']}")
+    print(f"Type: {relation['type']}")  # relationship_keywords
+    print(f"Description: {relation['description']}")
+```
+
+## 🔧 Advanced Features
+
+### 💾 **Persistence & Reloading**
+
+```python
+# Save knowledge graph for later use
+rag.save_graph("my_analysis.pkl")
+
+# Load in a new session  
+new_rag = TimeRAGSystem()
+new_rag.load_graph("my_analysis.pkl")
+
+# Continue querying with loaded data
+result = new_rag.query("Previous analysis question")
+```
+
+### 📈 **System Statistics**
+
+```python
+# Get detailed statistics
+stats = rag.get_stats()
+print(f"📁 Indexed documents: {stats['indexed_documents']}")
+print(f"🔗 Graph nodes: {stats['num_nodes']}")
+print(f"➡️ Graph edges: {stats['num_edges']}")
+print(f"📝 Stored chunks: {stats['stored_chunks']}")
+```
+
+### ⚙️ **Configuration Options**
+
 ```python
 from timerag import TimeRAGSystem, QueryParams, ChunkingConfig
 
-# Basic initialization with default models
-rag = TimeRAGSystem()
-
-# Or with custom configuration
+# Custom chunking configuration
 chunk_config = ChunkingConfig(
-    MAX_TOKENS_PER_CHUNK=2000,
-    OVERLAP_TOKENS=300
+    MAX_TOKENS_PER_CHUNK=2000,    # Chunk size
+    OVERLAP_TOKENS=300            # Overlap between chunks
 )
 
+# Custom query parameters
 query_params = QueryParams(
-    top_k=15,
-    similarity_threshold=0.3,
-    max_hops=4
+    top_k=15,                     # Number of results to retrieve
+    similarity_threshold=0.3,     # Minimum similarity score  
+    max_hops=3,                   # Graph traversal depth
+    final_max_tokens=8000         # Maximum context tokens
 )
 
+# Initialize with custom configurations
 rag = TimeRAGSystem(
     chunking_config=chunk_config,
     query_params=query_params
 )
 ```
 
-### Step 2: Document Processing
-```python
-# Financial report example
-documents = [
-    {
-        "text": "Microsoft reported cloud revenue growth of 30% in Q1 2024, driven by Azure services expansion.",
-        "doc_id": "msft_q1_2024_earnings",
-        "metadata": {"quarter": "2024Q1"}
-    },
-    {
-        "text": "In Q2 2024, Microsoft's cloud business continued strong performance with 35% growth year-over-year.",
-        "doc_id": "msft_q2_2024_earnings", 
-        "metadata": {"quarter": "2024Q2"}
-    }
-]
+## ⚠️ **Important Usage Notes**
 
-# Insert documents
+### 1. **Temporal Metadata is Essential**
+```python
+# ✅ Correct: Include quarter information
+rag.insert(text, doc_id, metadata={"quarter": "2024Q1"})
+
+# ❌ Incorrect: Missing temporal metadata
+rag.insert(text, doc_id)  # Won't work properly for temporal analysis
+```
+
+### 2. **Two-Step Indexing Process**
+```python
+# Step 1: Index all documents
 for doc in documents:
     rag.insert(doc["text"], doc["doc_id"], doc["metadata"])
-    
-# Build temporal connections (essential step)
-rag.build_temporal_links()
+
+# Step 2: Build temporal connections (REQUIRED)
+rag.build_temporal_links()  # Don't forget this!
 ```
 
-### Step 3: Querying
+### 3. **Quarter Format Standards**
 ```python
-# Query with default parameters
-result = rag.query("How is Microsoft's cloud business performing over time?")
+# ✅ Recommended formats
+metadata = {"quarter": "2024Q1"}    # Standard format
+metadata = {"quarter": "2023Q4"}    # Works for any year
+metadata = {"quarter": "2024Q2"}    # Supports all quarters
 
-# Query with custom parameters
-custom_params = QueryParams(
-    top_k=20,
-    similarity_threshold=0.2,
-    max_hops=3
+# ⚠️ Other formats may work but are not guaranteed
+metadata = {"quarter": "Q1 2024"}   # May work but not recommended
+```
+
+## 🎬 Run the Demo
+
+```bash
+cd examples
+python demo.py
+```
+
+The demo will show you:
+- System initialization
+- Document indexing with temporal metadata
+- Temporal connection building  
+- Multiple query examples
+- Detailed result analysis
+
+## 🛠️ Troubleshooting
+
+### Common Issues
+
+**1. Import Errors**
+```bash
+# If you get import errors, try:
+pip install --upgrade urllib3 transformers sentence-transformers
+```
+
+**2. Missing API Key**
+```python
+# Set your OpenAI API key
+import os
+os.environ["OPENAI_API_KEY"] = "your-key-here"
+
+# Or create .env file:
+echo "OPENAI_API_KEY=your-key-here" > .env
+```
+
+**3. Empty Results**
+```python
+# Make sure you build temporal links after indexing
+rag.build_temporal_links()  # This is required!
+
+# Check your quarter format
+metadata = {"quarter": "2024Q1"}  # Use this format
+```
+
+**4. Performance Issues**
+```python
+# Reduce parameters for better performance
+query_params = QueryParams(
+    top_k=5,                    # Fewer results
+    max_hops=2,                 # Shorter graph traversal
+    similarity_threshold=0.5    # Higher threshold = fewer results
 )
-
-result = rag.query(
-    "Compare Microsoft's cloud growth trends across quarters",
-    query_params=custom_params
-)
-
-# Access comprehensive results
-answer = result["answer"]
-entities = result["retrieved_entities"] 
-relations = result["retrieved_relations"]
-source_chunks = result["retrieved_source_chunks"]
-token_stats = result["token_stats"]
 ```
 
-### Step 4: Advanced Usage
-```python
-# Save/load knowledge graph
-rag.save_graph("my_knowledge_graph.pkl")
+## 🏗️ System Architecture
 
-# Later session
-new_rag = TimeRAGSystem()
-new_rag.load_graph("my_knowledge_graph.pkl")
-
-# Get system statistics
-stats = rag.get_stats()
-print(f"Indexed {stats['indexed_documents']} documents")
-print(f"Graph has {stats['num_nodes']} nodes, {stats['num_edges']} edges")
-```
-
-## Configuration
-
-You can easily customize the system by modifying configuration files in the `timerag/config/` directory:
-
-- **Entity Types**: Modify `configs/entity_types.json` to add, remove, or modify entity types and their descriptions
-- **Prompts**: Modify `configs/prompts.py` to change how the system interacts with LLMs
-- **Parameters**: Use `QueryParams` and `ChunkingConfig` classes for runtime parameter adjustment
-
-### Entity Types Configuration
-```json
-{
-  "entity_types": {
-    "COMPANY": {
-      "description_en": "Companies, enterprises, organizations",
-      "examples": ["Apple", "Microsoft", "Google"],
-      "extraction_hints": ["Company name", "Corporation", "Enterprise"]
-    }
-  }
-}
-```
-
-### Custom Prompt Templates
-```python
-# In configs/prompts.py
-RAG_RESPONSE_PROMPT = """
-Generate a comprehensive response based on:
-
-### Entities
-{entities}
-
-### Relationships
-{relationships}  
-
-### Document Evidence
-{chunks}
-
-Answer the user's question: {user_query}
-"""
-```
-
-## Key Implementation Notes
-
-1. **Temporal Metadata**: Always include `quarter` information in document metadata for time-aware functionality
-2. **Two-Step Process**: Document insertion must be followed by `build_temporal_links()` to complete graph construction
-3. **Custom Models**: The system supports custom LLM and embedding functions passed during initialization
-4. **Token Management**: Automatic token limit management prevents exceeding model context limits
-5. **Graph Storage**: Uses NetworkX for graph operations - no external graph database required
-
-## Package Structure
+TimeRAG uses a **three-layer temporal graph** structure:
 
 ```
-timerag/
-├── core/              # Core system orchestrator
-├── config/            # Configuration management
-├── extractors/        # LLM-based information extraction
-├── graph/            # Knowledge graph construction and retrieval
-├── processing/       # Document chunking and token management
-└── storage/          # Vector database integration
+Time Layer:    2023Q4 ──→ 2024Q1 ──→ 2024Q2 ──→ 2024Q3
+
+Entity Layer:  Apple──produces──→iPhone    Microsoft──develops──→Azure
+               │                   │        │                      │
+               │                   │        │                      │
+Temporal:      Apple_2024Q1──evolution──→Apple_2024Q2──evolution──→...
 ```
+
+### Core Components
+
+1. **📝 Document Chunking**: Intelligently splits long documents
+2. **🧠 LLM Extraction**: Extracts entities and relationships using customizable prompts
+3. **🕸️ Knowledge Graph**: Creates temporal-aware graph with NetworkX
+4. **🔍 Smart Retrieval**: Multi-hop graph traversal with semantic similarity
+5. **🎯 Answer Generation**: Synthesizes retrieved information into coherent answers
+
+## 📁 Project Structure
+
+```
+TimeRAG/
+├── timerag/                    # Main package
+│   ├── core/                  # System orchestrator  
+│   ├── config/               # Configuration management
+│   ├── extractors/           # LLM-based extraction
+│   ├── graph/               # Graph construction & retrieval
+│   ├── processing/          # Document processing
+│   └── storage/             # Vector database integration
+├── configs/                  # Configuration files
+│   ├── entity_types.json   # Entity type definitions
+│   └── prompts.py          # LLM prompt templates
+└── examples/               # Usage examples
+    └── demo.py            # Complete demonstration
+```
+
+## 🤝 Contributing
+
+This is a research project focused on temporal-aware RAG systems. The core functionality is complete and ready for research and prototyping use cases.
+
+## 📄 License
+
+This project is available for research and educational purposes.
