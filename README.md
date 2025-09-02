@@ -5,7 +5,7 @@ A **GTRAG** framework that specializes in analyzing time-series data across mult
 ## 🚀 Quick Start
 
 ```python
-from gtrag import gtragSystem
+from gtrag import gtragSystem, QueryParams
 
 # 1. Initialize system
 rag = gtragSystem()
@@ -35,7 +35,6 @@ result = rag.query("What happened in technology in 2023?")
 print(result["answer"])
 
 # 5. Query with specific time range filtering
-from gtrag.config.settings import QueryParams
 
 params = QueryParams(
     time_range=["2023Q4", "2024Q1"],  # Focus on specific periods
