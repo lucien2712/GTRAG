@@ -319,46 +319,6 @@ The demo will show you:
 - Multiple query examples
 - Detailed result analysis
 
-## 🛠️ Troubleshooting
-
-### Common Issues
-
-**1. Import Errors**
-```bash
-# If you get import errors, try:
-pip install --upgrade urllib3 transformers sentence-transformers
-```
-
-**2. Missing API Key**
-```python
-# Set your OpenAI API key
-import os
-os.environ["OPENAI_API_KEY"] = "your-key-here"
-
-# Or create .env file:
-echo "OPENAI_API_KEY=your-key-here" > .env
-```
-
-**3. Empty Results**
-```python
-# Make sure you build temporal links after indexing
-rag.build_temporal_links()  # This is required!
-
-# Check your quarter format
-metadata = {"quarter": "2024Q1"}  # Use this format
-```
-
-**4. Performance Issues**
-```python
-# Reduce parameters for better performance
-query_params = QueryParams(
-    top_k=5,                    # Fewer results
-    max_hops=2,                 # Shorter graph traversal
-    similarity_threshold=0.5    # Higher threshold = fewer results
-)
-```
-
-
 ## 📁 Project Structure
 
 ```
