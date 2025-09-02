@@ -340,13 +340,8 @@ class GraphBuilder:
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(graph_data, f, ensure_ascii=False, indent=2)
         
-        # Save vector store separately if exists
-        if self.vector_store:
-            vector_store_path = filepath.replace('.json', '_vectors')
-            self.vector_store.save(vector_store_path)
-            logger.info(f"Vector store saved to {vector_store_path}")
-        
         logger.info(f"Graph saved to {filepath}")
+        # Note: Vector store is now saved separately by TimeRAGSystem
     
     def load(self, filepath: str):
         """Load graph data from JSON file and rebuild graph."""
@@ -360,11 +355,9 @@ class GraphBuilder:
         
         self.graph = nx.node_link_graph(graph_data)
         
-        # Load vector store if exists
-        if self.use_vector_store:
-            vector_store_path = filepath.replace('.json', '_vectors')
+        # Initialize vector store if needed (but don't load - that's handled by TimeRAGSystem)
+        if self.use_vector_store and not self.vector_store:
             try:
-                # Try to initialize the same type of vector store
                 test_embedding = self.encode("test")
                 dimension = len(test_embedding) if len(test_embedding) > 0 else 384
                 
@@ -372,14 +365,13 @@ class GraphBuilder:
                     self.vector_store = FAISSVectorStore(dimension=dimension, metric="cosine")
                 else:
                     self.vector_store = InMemoryVectorStore(dimension=dimension, metric="cosine")
-                
-                self.vector_store.load(vector_store_path)
-                logger.info(f"Vector store loaded from {vector_store_path}")
+                logger.info(f"Initialized empty vector store (dimension={dimension})")
             except Exception as e:
-                logger.warning(f"Failed to load vector store: {e}")
+                logger.warning(f"Failed to initialize vector store: {e}")
                 self.vector_store = None
         
         logger.info(f"Graph loaded from {filepath}")
+        # Note: Vector store loading is now handled by TimeRAGSystem
     
     def get_neighbors(self, node_id: str, relation_types: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """Get neighbors of a node with optional relation type filtering."""

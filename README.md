@@ -188,21 +188,22 @@ for relation in relations[:3]:  # Show top 3
 ### 💾 **Persistence & Reloading**
 
 ```python
-# Save knowledge graph for later use
-rag.save_graph("my_analysis.json")
+# Save complete TimeRAG system to working directory
+rag.save_graph("./my_timerag_project/")
 
-# Load in a new session  
+# Load in a new session
 new_rag = TimeRAGSystem()
-new_rag.load_graph("my_analysis.json")
+new_rag.load_graph("./my_timerag_project/")
 
 # Continue querying with loaded data
 result = new_rag.query("Previous analysis question")
 
-# Files created:
-# - my_analysis.json          (NetworkX graph with entities/relations)
-# - my_analysis.chunks.json   (Original text chunks for context)
-# - my_analysis_vectors.faiss (Vector store for fast similarity search)  
-# - my_analysis_vectors.metadata.npy (Vector metadata)
+# Directory structure created:
+# my_timerag_project/
+# ├── graph.json              # NetworkX knowledge graph
+# ├── chunks.json             # Original text chunks  
+# ├── vectors.faiss           # Vector index (if enabled)
+# └── vectors.metadata.npy    # Vector metadata (if enabled)
 ```
 
 ### 📈 **System Statistics**

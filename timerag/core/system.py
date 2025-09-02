@@ -290,34 +290,114 @@ List the most relevant sources used
         match = quarter_pattern.search(chunk_id)
         return match.group(1) if match else None
 
-    def save_graph(self, filepath: str):
-        """Save the current knowledge graph and chunk store to files."""
+    def save_graph(self, working_dir: str):
+        """
+        Save the complete TimeRAG system to a working directory.
+        
+        Args:
+            working_dir: Directory path where all TimeRAG files will be saved
+            
+        Files created:
+            - graph.json: NetworkX knowledge graph with entities/relations
+            - chunks.json: Original text chunks for context retrieval
+            - vectors.faiss: FAISS vector index (if vector store enabled)
+            - vectors.metadata.npy: Vector metadata (if vector store enabled)
+        """
+        # Create working directory if it doesn't exist
+        work_path = Path(working_dir)
+        work_path.mkdir(parents=True, exist_ok=True)
+        
+        # Define file paths
+        graph_path = work_path / "graph.json"
+        chunks_path = work_path / "chunks.json"
+        vectors_path = work_path / "vectors"
+        
         # Save graph
-        self.graph_builder.save(filepath)
-        logger.info(f"Knowledge graph saved to: {filepath}")
+        self.graph_builder.save(str(graph_path))
+        logger.info(f"Knowledge graph saved to: {graph_path}")
 
         # Save chunk store
-        chunk_store_path = str(Path(filepath).with_suffix('.chunks.json'))
-        with open(chunk_store_path, 'w', encoding='utf-8') as f:
+        with open(chunks_path, 'w', encoding='utf-8') as f:
             json.dump(self.chunk_store, f, ensure_ascii=False, indent=2)
-        logger.info(f"Chunk store saved to: {chunk_store_path}")
+        logger.info(f"Chunk store saved to: {chunks_path}")
+        
+        # Save vector store if it exists
+        if hasattr(self.graph_builder, 'vector_store') and self.graph_builder.vector_store:
+            try:
+                self.graph_builder.vector_store.save(str(vectors_path))
+                logger.info(f"Vector store saved to: {vectors_path}.*")
+            except Exception as e:
+                logger.warning(f"Failed to save vector store: {e}")
+        
+        logger.info(f"Complete TimeRAG system saved to working directory: {working_dir}")
+        return {
+            "working_dir": str(work_path),
+            "graph_file": str(graph_path),
+            "chunks_file": str(chunks_path),
+            "vectors_file": str(vectors_path) + ".*" if hasattr(self.graph_builder, 'vector_store') and self.graph_builder.vector_store else None
+        }
 
-    def load_graph(self, filepath: str):
-        """Load knowledge graph and chunk store from files."""
-        # Load graph
-        self.graph_builder.load(filepath)
+    def load_graph(self, working_dir: str):
+        """
+        Load complete TimeRAG system from a working directory.
+        
+        Args:
+            working_dir: Directory path containing TimeRAG files
+            
+        Expected files:
+            - graph.json: Knowledge graph (required)
+            - chunks.json: Text chunks (optional, but recommended)
+            - vectors.faiss + vectors.metadata.npy: Vector store (optional)
+        """
+        work_path = Path(working_dir)
+        if not work_path.exists():
+            raise FileNotFoundError(f"Working directory not found: {working_dir}")
+        
+        # Define file paths
+        graph_path = work_path / "graph.json"
+        chunks_path = work_path / "chunks.json"
+        vectors_path = work_path / "vectors"
+        
+        # Load graph (required)
+        if not graph_path.exists():
+            raise FileNotFoundError(f"Graph file not found: {graph_path}")
+        
+        self.graph_builder.load(str(graph_path))
         self.retriever = GraphRetriever(self.graph_builder, self.extractor)
-        logger.info(f"Knowledge graph loaded from: {filepath}")
+        logger.info(f"Knowledge graph loaded from: {graph_path}")
 
-        # Load chunk store
-        chunk_store_path = str(Path(filepath).with_suffix('.chunks.json'))
-        if Path(chunk_store_path).exists():
-            with open(chunk_store_path, 'r', encoding='utf-8') as f:
+        # Load chunk store (optional)
+        if chunks_path.exists():
+            with open(chunks_path, 'r', encoding='utf-8') as f:
                 self.chunk_store = json.load(f)
-            logger.info(f"Chunk store loaded from: {chunk_store_path}")
+            logger.info(f"Chunk store loaded from: {chunks_path}")
         else:
-            logger.warning(f"Chunk store file not found: {chunk_store_path}. Some functionality may be limited.")
+            logger.warning(f"Chunk store file not found: {chunks_path}. Some functionality may be limited.")
             self.chunk_store = {}
+        
+        # Load vector store (optional)
+        if hasattr(self.graph_builder, 'vector_store') and self.graph_builder.vector_store:
+            try:
+                # Check if vector files exist
+                faiss_file = vectors_path.with_suffix('.faiss')
+                metadata_file = vectors_path.with_suffix('.metadata.npy')
+                
+                if faiss_file.exists() and metadata_file.exists():
+                    self.graph_builder.vector_store.load(str(vectors_path))
+                    logger.info(f"Vector store loaded from: {vectors_path}.*")
+                else:
+                    logger.info("Vector store files not found, will rebuild if needed")
+            except Exception as e:
+                logger.warning(f"Failed to load vector store: {e}")
+        
+        logger.info(f"Complete TimeRAG system loaded from working directory: {working_dir}")
+        return {
+            "working_dir": str(work_path),
+            "loaded_graph": graph_path.exists(),
+            "loaded_chunks": chunks_path.exists(), 
+            "loaded_vectors": (vectors_path.with_suffix('.faiss').exists() and 
+                             vectors_path.with_suffix('.metadata.npy').exists())
+        }
 
     def get_stats(self) -> Dict[str, Any]:
         """Get system processing statistics."""

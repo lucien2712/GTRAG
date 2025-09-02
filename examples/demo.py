@@ -223,31 +223,50 @@ def main():
     print("💾 Demonstrating Persistence & Reloading")
     print("=" * 60)
     
-    # Save the knowledge graph
-    save_path = "demo_timerag_graph.json"
-    print(f"\n8. 💾 Saving knowledge graph to '{save_path}'...")
+    # Save the knowledge graph to working directory
+    working_dir = "./demo_timerag_workspace/"
+    print(f"\n8. 💾 Saving TimeRAG system to working directory '{working_dir}'...")
     try:
-        rag.save_graph(save_path)
-        print(f"   ✅ Knowledge graph saved successfully!")
+        save_result = rag.save_graph(working_dir)
+        print(f"   ✅ TimeRAG system saved successfully!")
+        print(f"   📁 Working directory created: {save_result['working_dir']}")
         print(f"   📁 Files created:")
-        print(f"      - {save_path} (Main graph with entities/relations)")
-        print(f"      - demo_timerag_graph.chunks.json (Original text chunks)")
-        if hasattr(rag.graph_builder, 'vector_store') and rag.graph_builder.vector_store:
-            print(f"      - demo_timerag_graph_vectors.faiss (Vector index)")
-            print(f"      - demo_timerag_graph_vectors.metadata.npy (Vector metadata)")
+        print(f"      - graph.json (Knowledge graph with entities/relations)")
+        print(f"      - chunks.json (Original text chunks for context)")
+        if save_result.get('vectors_file'):
+            print(f"      - vectors.faiss (Vector index for fast search)")
+            print(f"      - vectors.metadata.npy (Vector metadata)")
+        
+        # Show directory contents
+        from pathlib import Path
+        work_path = Path(working_dir)
+        if work_path.exists():
+            files = list(work_path.glob("*"))
+            print(f"   📋 Directory contents ({len(files)} files):")
+            for file in sorted(files):
+                size_kb = file.stat().st_size / 1024
+                print(f"      - {file.name} ({size_kb:.1f} KB)")
+                
     except Exception as e:
-        print(f"   ❌ Failed to save graph: {e}")
+        print(f"   ❌ Failed to save system: {e}")
+        import traceback
+        traceback.print_exc()
     
     # Demonstrate loading in a new session
-    print(f"\n9. 📂 Loading knowledge graph from saved files...")
+    print(f"\n9. 📂 Loading TimeRAG system from working directory...")
     try:
         # Create a new RAG system instance (simulating new session)
         new_rag = TimeRAGSystem(
             llm_func=gpt_4o_mini_llm,
             embedding_func=openai_embedding_func
         )
-        new_rag.load_graph(save_path)
-        print(f"   ✅ Knowledge graph loaded successfully!")
+        load_result = new_rag.load_graph(working_dir)
+        print(f"   ✅ TimeRAG system loaded successfully!")
+        print(f"   📂 Loaded from: {load_result['working_dir']}")
+        print(f"   📊 Components loaded:")
+        print(f"      - Graph: {'✅' if load_result['loaded_graph'] else '❌'}")
+        print(f"      - Chunks: {'✅' if load_result['loaded_chunks'] else '❌'}")
+        print(f"      - Vectors: {'✅' if load_result['loaded_vectors'] else '❌'}")
         
         # Get statistics from loaded system
         loaded_stats = new_rag.get_stats()
@@ -266,17 +285,18 @@ def main():
               f"{len(test_result.get('retrieved_relations', []))} relations")
         
     except Exception as e:
-        print(f"   ❌ Failed to load/test graph: {e}")
+        print(f"   ❌ Failed to load/test system: {e}")
         import traceback
         traceback.print_exc()
     
     print("\n" + "=" * 60)
     print("🎉 Demo Completed Successfully!")
     print("=" * 60)
-    print(f"\n💡 You can now use the saved files:")
-    print(f"   - To continue in another session: new_rag.load_graph('{save_path}')")
-    print(f"   - The graph persists entities, relations, chunks, and vectors")
-    print(f"   - Perfect for production applications requiring data persistence")
+    print(f"\n💡 You can now use the working directory:")
+    print(f"   - To continue in another session: new_rag.load_graph('{working_dir}')")
+    print(f"   - All components are neatly organized in one directory")
+    print(f"   - Easy to backup, share, or deploy to production")
+    print(f"   - Clean separation of concerns with standardized file names")
     
     # Show final system statistics
     try:
