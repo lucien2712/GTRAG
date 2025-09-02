@@ -393,3 +393,112 @@ class GraphBuilder:
                     })
         
         return neighbors
+    
+    def build_temporal_connections(self):
+        """
+        Build temporal evolution connections between entities across different time periods.
+        Uses flexible time handling to support various time formats.
+        """
+        from ..utils.time_handler import TimeHandler, TimeGranularity
+        
+        logger.info("Building temporal connections using flexible TimeHandler...")
+        
+        # Group entities by name and type
+        entities_by_name_type = {}
+        for node_id, node_data in self.graph.nodes(data=True):
+            if node_data.get('category') == 'entity':
+                entity_name = node_data.get('name', '').lower()
+                entity_type = node_data.get('type', '')
+                key = (entity_name, entity_type)
+                
+                if key not in entities_by_name_type:
+                    entities_by_name_type[key] = []
+                
+                entities_by_name_type[key].append({
+                    'node_id': node_id,
+                    'node_data': node_data
+                })
+        
+        temporal_connections_added = 0
+        
+        # For each group of same entities, create temporal evolution edges
+        for (entity_name, entity_type), entity_instances in entities_by_name_type.items():
+            if len(entity_instances) < 2:
+                continue  # Need at least 2 instances for temporal connection
+            
+            # Parse time information for each instance
+            time_instances = []
+            for instance in entity_instances:
+                node_data = instance['node_data']
+                
+                # Try different time fields
+                time_point = None
+                if '_standardized_time' in node_data:
+                    time_point = TimeHandler.parse_time(node_data['_standardized_time'])
+                else:
+                    # Fallback to extracting from metadata
+                    time_point = TimeHandler.extract_time_from_metadata(node_data)
+                
+                if time_point:
+                    time_instances.append({
+                        'node_id': instance['node_id'],
+                        'time_point': time_point,
+                        'node_data': node_data
+                    })
+            
+            if len(time_instances) < 2:
+                continue  # Need at least 2 time instances
+            
+            # Sort by time
+            time_instances.sort(key=lambda x: x['time_point'].sort_key)
+            
+            # Create temporal evolution edges between adjacent and related time instances
+            for i in range(len(time_instances)):
+                for j in range(i + 1, len(time_instances)):
+                    instance_1 = time_instances[i]
+                    instance_2 = time_instances[j]
+                    
+                    # Calculate time similarity to decide if we should connect
+                    time_similarity = TimeHandler.calculate_time_similarity(
+                        instance_1['time_point'], 
+                        instance_2['time_point']
+                    )
+                    
+                    # Create connection if times are similar enough or adjacent
+                    should_connect = (
+                        time_similarity > 0.3 or  # Similar times
+                        TimeHandler.is_adjacent(instance_1['time_point'], instance_2['time_point'])  # Adjacent times
+                    )
+                    
+                    if should_connect:
+                        # Add temporal evolution edge
+                        edge_key = f"temporal_evolution_{instance_1['node_id']}_{instance_2['node_id']}"
+                        
+                        if not self.graph.has_edge(instance_1['node_id'], instance_2['node_id']):
+                            time_1_str = str(instance_1['time_point'])
+                            time_2_str = str(instance_2['time_point'])
+                            
+                            self.graph.add_edge(
+                                instance_1['node_id'],
+                                instance_2['node_id'],
+                                key=edge_key,
+                                relation_keywords=["temporal_evolution"],
+                                description=f"{entity_name} evolves from {time_1_str} to {time_2_str}",
+                                evidence=f"Same entity '{entity_name}' appears in different time periods",
+                                source_doc_id="system_temporal",
+                                category="temporal_relation",
+                                time_similarity=time_similarity,
+                                time_1=time_1_str,
+                                time_2=time_2_str
+                            )
+                            temporal_connections_added += 1
+        
+        logger.info(f"Added {temporal_connections_added} temporal evolution connections")
+    
+    def get_graph_stats(self) -> Dict[str, Any]:
+        """Get statistics about the knowledge graph."""
+        return {
+            "num_nodes": self.graph.number_of_nodes(),
+            "num_edges": self.graph.number_of_edges(),
+            "vector_store_enabled": self.use_vector_store and self.vector_store is not None
+        }

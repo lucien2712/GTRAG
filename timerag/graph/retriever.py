@@ -87,10 +87,10 @@ class GraphRetriever:
         low_level_keys = keywords.get("low_level_keywords", [])
         
         # Parse time range for time-aware filtering and scoring
-        valid_quarters = None
+        valid_times = None
         if enable_time_filtering and time_range:
             from ..utils.time_range import TimeRangeParser
-            valid_quarters = TimeRangeParser.parse_time_range(time_range)
+            valid_times = TimeRangeParser.parse_time_range(time_range)
         
         # Use vector store if available for more efficient search
         if self.graph_builder.vector_store:

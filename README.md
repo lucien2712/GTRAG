@@ -10,33 +10,39 @@ from timerag import TimeRAGSystem
 # 1. Initialize system
 rag = TimeRAGSystem()
 
-# 2. Index documents with temporal metadata
+# 2. Index documents with flexible temporal metadata
 rag.insert(
     text="Apple reported iPhone sales of 80M units in Q4 2023.", 
     doc_id="apple_q4_2023", 
-    metadata={"quarter": "2023Q4"}
+    metadata={"quarter": "2023Q4"}  # Supports quarters
 )
 rag.insert(
-    text="Apple's iPhone sales grew to 90M units in Q1 2024.", 
-    doc_id="apple_q1_2024", 
-    metadata={"quarter": "2024Q1"}
+    text="Apple launched iPhone 15 on September 15, 2023.", 
+    doc_id="apple_launch_2023", 
+    metadata={"timestamp": "2023-09-15"}  # Supports ISO dates
+)
+rag.insert(
+    text="Microsoft Azure grew 28% in March 2024.", 
+    doc_id="msft_march_2024", 
+    metadata={"date": "2024-03"}  # Supports year-month
 )
 
 # 3. Build temporal connections
 rag.build_temporal_links()
 
-# 4. Query the system
-result = rag.query("What are the trends in Apple iPhone sales over time?")
+# 4. Query with flexible time ranges
+result = rag.query("What happened in technology in 2023?")
 print(result["answer"])
 ```
 
 ## ✨ Core Features
 
-- **🕒 Temporal-Aware**: Automatically tracks entity evolution across time periods
+- **🕒 Flexible Time Support**: Works with quarters, ISO dates, months, years, and custom time labels
 - **🧠 Knowledge Graph**: Converts text into structured, queryable knowledge graphs  
-- **🎯 Smart Retrieval**: Multi-hop graph traversal with semantic similarity
+- **🎯 Smart Retrieval**: Multi-hop graph traversal with semantic and temporal similarity
 - **⚙️ Highly Customizable**: Configurable entity types, prompts, and models
 - **🔌 Custom Model Support**: Easy integration with any LLM or embedding model
+- **🔄 Backward Compatible**: Existing quarter-based code continues to work
 
 ## System Architecture
 
@@ -277,8 +283,10 @@ rag = TimeRAGSystem(
 
 ### 1. **Temporal Metadata is Essential**
 ```python
-# ✅ Correct: Include quarter information
-rag.insert(text, doc_id, metadata={"quarter": "2024Q1"})
+# ✅ Correct: Include time information (any supported format)
+rag.insert(text, doc_id, metadata={"timestamp": "2024Q1"})      # Quarters
+rag.insert(text, doc_id, metadata={"date": "2024-03-15"})       # ISO dates
+rag.insert(text, doc_id, metadata={"time": "March 2024"})       # Month names
 
 # ❌ Incorrect: Missing temporal metadata
 rag.insert(text, doc_id)  # Won't work properly for temporal analysis
@@ -294,29 +302,38 @@ for doc in documents:
 rag.build_temporal_links()  # Don't forget this!
 ```
 
-### 3. **Quarter Format Standards**
+### 3. **Supported Time Formats**
 ```python
-# ✅ Recommended formats
-metadata = {"quarter": "2024Q1"}    # Standard format
-metadata = {"quarter": "2023Q4"}    # Works for any year
-metadata = {"quarter": "2024Q2"}    # Supports all quarters
+# ✅ All supported formats
+metadata = {"timestamp": "2024Q1"}        # Quarters (backward compatible)
+metadata = {"timestamp": "2024-03-15"}    # ISO dates
+metadata = {"date": "2024-03"}            # Year-month
+metadata = {"timestamp": "2024"}          # Years only
+metadata = {"time": "March 2024"}         # Month names
+metadata = {"timestamp": "Phase-Alpha"}   # Custom labels
 
-# ⚠️ Other formats may work but are not guaranteed
-metadata = {"quarter": "Q1 2024"}   # May work but not recommended
+# 📝 Multiple time field names supported
+# The system checks: timestamp, quarter, date, time, period
 ```
 
-## 🎬 Run the Demo
+## 🎬 Run the Demos
 
 ```bash
 cd examples
+
+# Basic functionality demo
 python demo.py
+
+# Flexible time formats demo
+python flexible_time_demo.py
 ```
 
-The demo will show you:
-- System initialization
-- Document indexing with temporal metadata
-- Temporal connection building  
-- Multiple query examples
+The demos will show you:
+- **demo.py**: Basic functionality with quarter-based temporal analysis
+- **flexible_time_demo.py**: Advanced time format support (ISO dates, months, custom labels)
+- System initialization and document indexing
+- Temporal connection building across different time formats
+- Multiple query examples with flexible time ranges
 - Detailed result analysis
 
 ## 📁 Project Structure

@@ -2,66 +2,59 @@
 Time range utilities for TimeRAG system.
 
 This module provides utilities for parsing and validating time ranges,
-particularly for quarterly financial data analysis.
+supporting flexible time formats through the TimeHandler class.
 """
 
 import re
 from typing import List, Optional, Set, Tuple
 from datetime import datetime
+from .time_handler import TimeHandler, TimePoint, TimeGranularity
 
 
 class TimeRangeParser:
-    """Parser for time range specifications."""
-    
-    # Quarterly pattern: 2024Q1, 2023Q4, etc.
-    QUARTER_PATTERN = re.compile(r'^(\d{4})Q([1-4])$')
-    
-    # Year pattern: 2024, 2023, etc.
-    YEAR_PATTERN = re.compile(r'^(\d{4})$')
+    """
+    Parser for time range specifications using flexible TimeHandler.
+    Maintains backward compatibility with quarter-based API.
+    """
     
     @classmethod
     def parse_time_range(cls, time_range: Optional[List[str]]) -> Optional[Set[str]]:
         """
-        Parse time range specification into a set of valid quarter strings.
+        Parse time range specification into a set of valid time strings.
+        Now supports flexible time formats through TimeHandler.
         
         Args:
-            time_range: List of time specifications, e.g., ["2024Q1", "2024Q2"] or ["2024"]
+            time_range: List of time specifications (any supported format)
             
         Returns:
-            Set of valid quarter strings, or None if no filtering should be applied
+            Set of standardized time strings, or None if no filtering should be applied
         """
         if not time_range:
             return None
         
-        valid_quarters = set()
+        valid_times = set()
         
         for time_spec in time_range:
             if not isinstance(time_spec, str):
                 continue
+            
+            # Use TimeHandler to parse flexible formats
+            parsed_time = TimeHandler.parse_time(time_spec.strip())
+            if parsed_time:
+                valid_times.add(parsed_time.value)
                 
-            time_spec = time_spec.strip().upper()
-            
-            # Check if it's a quarterly specification
-            quarter_match = cls.QUARTER_PATTERN.match(time_spec)
-            if quarter_match:
-                valid_quarters.add(time_spec)
-                continue
-            
-            # Check if it's a year specification
-            year_match = cls.YEAR_PATTERN.match(time_spec)
-            if year_match:
-                year = year_match.group(1)
-                # Add all quarters for this year
-                for q in range(1, 5):
-                    valid_quarters.add(f"{year}Q{q}")
-                continue
+                # If it's a year, expand to quarters for backward compatibility
+                if parsed_time.granularity == TimeGranularity.YEAR:
+                    year = parsed_time.value
+                    for quarter in [1, 2, 3, 4]:
+                        valid_times.add(f"{year}Q{quarter}")
         
-        return valid_quarters if valid_quarters else None
+        return valid_times if valid_times else None
     
     @classmethod
     def validate_time_range(cls, time_range: Optional[List[str]]) -> Tuple[bool, str]:
         """
-        Validate time range specification.
+        Validate time range specification using flexible TimeHandler.
         
         Args:
             time_range: List of time specifications
@@ -79,10 +72,10 @@ class TimeRangeParser:
             if not isinstance(time_spec, str):
                 return False, f"Invalid time specification: {time_spec}. Must be string."
             
-            time_spec = time_spec.strip().upper()
-            
-            if not (cls.QUARTER_PATTERN.match(time_spec) or cls.YEAR_PATTERN.match(time_spec)):
-                return False, f"Invalid time format: {time_spec}. Use formats like '2024Q1' or '2024'."
+            # Use TimeHandler to validate
+            parsed_time = TimeHandler.parse_time(time_spec.strip())
+            if not parsed_time:
+                return False, f"Invalid time format: {time_spec}. Supported formats: ISO dates (2024-03-15), quarters (2024Q1), months (2024-03), years (2024), custom labels."
         
         return True, ""
     
@@ -260,48 +253,38 @@ def filter_edges_by_time_range(edges_data: List[dict],
     return filtered_edges
 
 
-def calculate_temporal_relevance_score(item_quarter: str, valid_quarters: set) -> float:
+def calculate_temporal_relevance_score(item_time: str, valid_times: set) -> float:
     """
-    Calculate temporal relevance score for an item based on its quarter.
+    Calculate temporal relevance score for an item using flexible time formats.
     
     Args:
-        item_quarter: Quarter string of the item
-        valid_quarters: Set of valid quarters from time range
+        item_time: Time string of the item (any supported format)
+        valid_times: Set of valid time strings from time range
         
     Returns:
         Float score between 0.0 and 1.0, where 1.0 means perfect temporal match
     """
-    if not item_quarter or not valid_quarters:
+    if not item_time or not valid_times:
         return 0.0
     
     # Perfect match
-    if item_quarter in valid_quarters:
+    if item_time in valid_times:
         return 1.0
     
-    # Calculate distance to nearest valid quarter
-    try:
-        item_year, item_q = TimeRangeParser.QUARTER_PATTERN.match(item_quarter).groups()
-        item_year, item_q = int(item_year), int(item_q)
-        
-        min_distance = float('inf')
-        for valid_q in valid_quarters:
-            if TimeRangeParser.QUARTER_PATTERN.match(valid_q):
-                valid_year, valid_quarter = TimeRangeParser.QUARTER_PATTERN.match(valid_q).groups()
-                valid_year, valid_quarter = int(valid_year), int(valid_quarter)
-                
-                # Calculate quarter distance (each year = 4 quarters)
-                item_total_q = item_year * 4 + item_q
-                valid_total_q = valid_year * 4 + valid_quarter
-                distance = abs(item_total_q - valid_total_q)
-                min_distance = min(min_distance, distance)
-        
-        # Convert distance to relevance score (exponential decay)
-        if min_distance == float('inf'):
-            return 0.0
-        return max(0.0, 0.8 ** min_distance)  # Decay factor of 0.8 per quarter
-        
-    except (AttributeError, ValueError):
+    # Parse item time
+    item_parsed = TimeHandler.parse_time(item_time)
+    if not item_parsed:
         return 0.0
+    
+    # Calculate similarity to all valid times and take the maximum
+    max_similarity = 0.0
+    for valid_time in valid_times:
+        valid_parsed = TimeHandler.parse_time(valid_time)
+        if valid_parsed:
+            similarity = TimeHandler.calculate_time_similarity(item_parsed, valid_parsed)
+            max_similarity = max(max_similarity, similarity)
+    
+    return max_similarity
 
 
 def calculate_combined_score(semantic_score: float, temporal_score: float, 

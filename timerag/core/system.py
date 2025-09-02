@@ -80,10 +80,19 @@ class TimeRAGSystem:
         Args:
             text: Document content to index
             doc_id: Unique document identifier
-            metadata: Document metadata (must include 'quarter' for temporal functionality)
+            metadata: Document metadata (include 'timestamp', 'quarter', 'date', or 'time' for temporal functionality)
         """
         logger.info(f"Starting document insertion: {doc_id}")
         metadata = metadata or {}
+        
+        # Standardize time information using TimeHandler
+        from ..utils.time_handler import TimeHandler
+        time_point = TimeHandler.extract_time_from_metadata(metadata)
+        if time_point:
+            # Add standardized timestamp while keeping original fields for backward compatibility
+            metadata['_standardized_time'] = time_point.value
+            metadata['_time_granularity'] = time_point.granularity.value
+            logger.info(f"Standardized time for {doc_id}: {time_point.value} ({time_point.granularity.value})")
 
         # 1. Document chunking
         chunks = self.chunker.chunk(doc_id, text, metadata)
@@ -186,8 +195,8 @@ class TimeRAGSystem:
                 time_relevant_chunk_ids = set()
                 for chunk_id in self.chunk_store.keys():
                     if chunk_id not in primary_chunk_ids:  # Avoid duplicates
-                        chunk_quarter = self._extract_quarter_from_chunk_id(chunk_id)
-                        if chunk_quarter in valid_quarters:
+                        chunk_time = self._extract_time_from_chunk_id(chunk_id)
+                        if chunk_time in valid_quarters:
                             time_relevant_chunk_ids.add(chunk_id)
                 
                 # Add supplementary chunks (already deduplicated)
@@ -280,15 +289,32 @@ List the most relevant sources used
         
         return "\n".join(context_parts)
 
-    def _extract_quarter_from_chunk_id(self, chunk_id: str) -> Optional[str]:
+    def _extract_time_from_chunk_id(self, chunk_id: str) -> Optional[str]:
         """
-        Extract quarter information from chunk ID.
-        Assumes chunk IDs contain quarter info like 'doc_2024Q1_chunk1'.
+        Extract time information from chunk ID using flexible TimeHandler.
+        Supports various time formats in chunk IDs.
         """
+        from ..utils.time_handler import TimeHandler
         import re
-        quarter_pattern = re.compile(r'(\d{4}Q[1-4])')
-        match = quarter_pattern.search(chunk_id)
-        return match.group(1) if match else None
+        
+        # Try to find any recognizable time pattern in chunk ID
+        # Common patterns: doc_2024Q1_chunk1, report_2024-03_part1, etc.
+        time_patterns = [
+            r'(\d{4}Q[1-4])',      # Quarter format
+            r'(\d{4}-\d{2}-\d{2})', # ISO date
+            r'(\d{4}-\d{2})',      # Year-month
+            r'(\d{4})',            # Year only
+        ]
+        
+        for pattern in time_patterns:
+            match = re.search(pattern, chunk_id)
+            if match:
+                time_candidate = match.group(1)
+                parsed_time = TimeHandler.parse_time(time_candidate)
+                if parsed_time:
+                    return parsed_time.value
+        
+        return None
 
     def save_graph(self, working_dir: str):
         """
