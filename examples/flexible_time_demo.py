@@ -27,18 +27,18 @@ def main():
     
     # === Various Time Format Examples ===
     
-    # Quarter format (backward compatible)
+    # Quarter format (unified 'date' field)
     rag.insert(
         text="Apple reported record iPhone 15 sales of 85M units in Q4 2023, driving strong holiday revenues.",
         doc_id="apple_q4_2023",
-        metadata={"quarter": "2023Q4", "company": "Apple"}
+        metadata={"date": "2023Q4", "company": "Apple"}
     )
     
     # ISO Date format
     rag.insert(
         text="Apple launched iPhone 15 Pro with titanium design on 2023-09-15, marking a significant upgrade.",
         doc_id="apple_launch_2023",
-        metadata={"timestamp": "2023-09-15", "company": "Apple", "event": "product_launch"}
+        metadata={"date": "2023-09-15", "company": "Apple", "event": "product_launch"}
     )
     
     # Year-Month format
@@ -52,28 +52,28 @@ def main():
     rag.insert(
         text="Google's Pixel 8 series gained 12% market share in November 2023 following the launch event.",
         doc_id="google_nov_2023",
-        metadata={"time": "November 2023", "company": "Google"}
+        metadata={"date": "November 2023", "company": "Google"}
     )
     
     # Year only format
     rag.insert(
         text="Tesla delivered over 1.8 million vehicles globally in 2023, setting a new annual record.",
         doc_id="tesla_2023_annual",
-        metadata={"timestamp": "2023", "company": "Tesla"}
+        metadata={"date": "2023", "company": "Tesla"}
     )
     
     # Custom label format
     rag.insert(
         text="During Phase-Alpha of the Mars mission, SpaceX successfully tested the new Raptor engine design.",
         doc_id="spacex_phase_alpha",
-        metadata={"timestamp": "Phase-Alpha", "company": "SpaceX", "project": "Mars Mission"}
+        metadata={"date": "Phase-Alpha", "company": "SpaceX", "project": "Mars Mission"}
     )
     
     # Another custom format
     rag.insert(
         text="In Sprint-3 of the AI development cycle, OpenAI achieved breakthrough performance on reasoning tasks.",
         doc_id="openai_sprint3",
-        metadata={"time": "Sprint-3", "company": "OpenAI", "project": "AI Development"}
+        metadata={"date": "Sprint-3", "company": "OpenAI", "project": "AI Development"}
     )
     
     print("3. Building temporal connections...")
@@ -146,9 +146,29 @@ def main():
                 entity_time = entity.get('metadata', {}).get('_standardized_time', 'N/A')
                 print(f"  - {entity['name']} ({entity['type']}) [Time: {entity_time}]")
         
+        print(f"\n⏰ Time Range Used: {query['time_range']}")
         print("-" * 80)
     
-    print("\n5. Demonstrating Time Flexibility...")
+    print("\n5. Advanced Time Range Demonstrations...")
+    
+    # Advanced example: Compare different temporal expansion modes
+    print("\n=== Comparing Temporal Expansion Modes ===")
+    base_question = "What technologies emerged in 2023?"
+    
+    for mode in ["strict", "with_temporal", "expanded"]:
+        print(f"\n--- Mode: {mode} ---")
+        params = QueryParams(
+            time_range=["2023Q4"],
+            enable_time_filtering=True,
+            temporal_expansion_mode=mode,
+            top_k=5
+        )
+        
+        result = rag.query(base_question, query_params=params)
+        print(f"Retrieved {len(result['retrieved_entities'])} entities")
+        print(f"Mode '{mode}' summary: {result['answer'][:200]}...")
+    
+    print("\n6. System Statistics...")
     
     # Show system stats
     stats = rag.get_stats()
@@ -158,18 +178,19 @@ def main():
     print(f"- Graph edges: {stats['num_edges']}")
     print(f"- Stored chunks: {stats['stored_chunks']}")
     
-    print("\n6. Saving system with flexible time data...")
+    print("\n7. Saving system with flexible time data...")
     rag.save_graph("./flexible_time_demo/")
     print("System saved to: ./flexible_time_demo/")
     
     print("\n=== Demo Complete ===")
     print("\nKey Features Demonstrated:")
-    print("✅ Multiple time formats: quarters, ISO dates, months, years, custom labels")
-    print("✅ Backward compatibility with existing quarter-based code")
-    print("✅ Flexible time range queries")
+    print("✅ Unified 'date' field supporting all time formats: quarters, ISO dates, months, years, custom labels")
+    print("✅ Flexible time_range query filtering with QueryParams")
+    print("✅ Mixed time format support in single queries")
+    print("✅ Temporal expansion modes: strict, with_temporal, expanded")
     print("✅ Temporal evolution connections across different time formats")
     print("✅ Smart time similarity scoring")
-    print("✅ Mixed time format support in single queries")
+    print("✅ Simplified metadata structure with single 'date' field")
 
 
 if __name__ == "__main__":

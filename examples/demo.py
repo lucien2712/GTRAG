@@ -102,27 +102,27 @@ def main():
         {
             "text": "Apple Inc. reported iPhone sales of 80 million units in Q4 2023, showing strong demand for the latest models.", 
             "doc_id": "apple_q4_2023", 
-            "metadata": {"quarter": "2023Q4"}
+            "metadata": {"date": "2023Q4"}
         },
         {
             "text": "By Q1 2024, Apple's iPhone sales increased to 90 million units due to new model releases and improved supply chain.", 
             "doc_id": "apple_q1_2024", 
-            "metadata": {"quarter": "2024Q1"}
+            "metadata": {"date": "2024Q1"}
         },
         {
             "text": "Microsoft's cloud business revenue grew significantly by 30% in Q1 2024, driven by Azure services and enterprise adoption.", 
             "doc_id": "ms_q1_2024", 
-            "metadata": {"quarter": "2024Q1"}
+            "metadata": {"date": "2024Q1"}
         },
         {
             "text": "In Q2 2024, Microsoft continued strong cloud performance with 35% year-over-year growth, expanding into new markets.",
             "doc_id": "ms_q2_2024",
-            "metadata": {"quarter": "2024Q2"}
+            "metadata": {"date": "2024Q2"}
         },
         {
             "text": "Apple's services revenue reached $22.3 billion in Q1 2024, representing 16% growth from the previous year.",
             "doc_id": "apple_services_q1_2024",
-            "metadata": {"quarter": "2024Q1"}
+            "metadata": {"date": "2024Q1"}
         }
     ]
     

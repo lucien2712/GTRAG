@@ -28,7 +28,7 @@ def main():
             CEO Tim Cook expressed optimism about AI integration and new products.
             The company announced a $0.24 dividend per share.
             """,
-            "metadata": {"quarter": "2024Q1", "company": "Apple", "report_type": "earnings"}
+            "metadata": {"date": "2024Q1", "company": "Apple", "report_type": "earnings"}
         },
         {
             "doc_id": "earnings_2024q2", 
@@ -40,7 +40,7 @@ def main():
             Tim Cook announced major AI partnerships and Vision Pro expansion.
             Dividend remained at $0.24 per share.
             """,
-            "metadata": {"quarter": "2024Q2", "company": "Apple", "report_type": "earnings"}
+            "metadata": {"date": "2024Q2", "company": "Apple", "report_type": "earnings"}
         },
         {
             "doc_id": "earnings_2024q3",
@@ -52,7 +52,7 @@ def main():
             Tim Cook highlighted successful AI feature rollouts and market expansion.
             Special dividend of $0.25 per share announced.
             """,
-            "metadata": {"quarter": "2024Q3", "company": "Apple", "report_type": "earnings"}
+            "metadata": {"date": "2024Q3", "company": "Apple", "report_type": "earnings"}
         }
     ]
     

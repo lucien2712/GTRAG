@@ -14,12 +14,12 @@ rag = TimeRAGSystem()
 rag.insert(
     text="Apple reported iPhone sales of 80M units in Q4 2023.", 
     doc_id="apple_q4_2023", 
-    metadata={"quarter": "2023Q4"}  # Supports quarters
+    metadata={"date": "2023Q4"}  # Supports quarters
 )
 rag.insert(
     text="Apple launched iPhone 15 on September 15, 2023.", 
     doc_id="apple_launch_2023", 
-    metadata={"timestamp": "2023-09-15"}  # Supports ISO dates
+    metadata={"date": "2023-09-15"}  # Supports ISO dates
 )
 rag.insert(
     text="Microsoft Azure grew 28% in March 2024.", 
@@ -33,16 +33,26 @@ rag.build_temporal_links()
 # 4. Query with flexible time ranges
 result = rag.query("What happened in technology in 2023?")
 print(result["answer"])
+
+# 5. Query with specific time range filtering
+from timerag.config.settings import QueryParams
+
+params = QueryParams(
+    time_range=["2023Q4", "2024Q1"],  # Focus on specific periods
+    enable_time_filtering=True
+)
+result = rag.query("Compare Apple and Microsoft performance", query_params=params)
+print(result["answer"])
 ```
 
 ## ✨ Core Features
 
-- **🕒 Flexible Time Support**: Works with quarters, ISO dates, months, years, and custom time labels
+- **🕒 Universal Time Support**: Single `date` field accepts quarters, ISO dates, months, years, and custom labels
 - **🧠 Knowledge Graph**: Converts text into structured, queryable knowledge graphs  
 - **🎯 Smart Retrieval**: Multi-hop graph traversal with semantic and temporal similarity
 - **⚙️ Highly Customizable**: Configurable entity types, prompts, and models
 - **🔌 Custom Model Support**: Easy integration with any LLM or embedding model
-- **🔄 Backward Compatible**: Existing quarter-based code continues to work
+- **🎯 Simplified API**: Single `date` field for all time formats
 
 ## System Architecture
 
@@ -158,9 +168,9 @@ rag = TimeRAGSystem(
 
 # Index multiple documents efficiently
 documents = [
-    {"text": "...", "doc_id": "doc1", "metadata": {"quarter": "2023Q4"}},
-    {"text": "...", "doc_id": "doc2", "metadata": {"quarter": "2024Q1"}},
-    {"text": "...", "doc_id": "doc3", "metadata": {"quarter": "2024Q2"}},
+    {"text": "...", "doc_id": "doc1", "metadata": {"date": "2023Q4"}},
+    {"text": "...", "doc_id": "doc2", "metadata": {"date": "2024Q1"}},
+    {"text": "...", "doc_id": "doc3", "metadata": {"date": "2024Q2"}},
 ]
 
 for doc in documents:
@@ -168,18 +178,49 @@ for doc in documents:
 
 rag.build_temporal_links()
 
-# Query with custom parameters
+# Query with custom parameters and time filtering
 custom_params = QueryParams(
     top_k=15,                    # Retrieve top 15 results
     similarity_threshold=0.2,    # Lower threshold = more results
     max_hops=3,                  # Maximum graph traversal hops
-    final_max_tokens=8000        # Context size limit
+    final_max_tokens=8000,       # Context size limit
+    time_range=["2024Q1", "2024Q2"],  # Specific time period
+    enable_time_filtering=True   # Enable time-aware filtering
 )
 
 result = rag.query(
-    "Compare performance trends across all quarters",
+    "Compare performance trends in early 2024",
     query_params=custom_params
 )
+```
+
+### ⏰ **Time Range Filtering Examples**
+
+```python
+from timerag.config.settings import QueryParams
+
+# Example 1: Quarter-based filtering
+params = QueryParams(time_range=["2023Q4"], enable_time_filtering=True)
+result = rag.query("What happened in Q4 2023?", query_params=params)
+
+# Example 2: Mixed time formats
+params = QueryParams(
+    time_range=["2023Q4", "2024-01", "March 2024"], 
+    enable_time_filtering=True
+)
+result = rag.query("Show trends across different periods", query_params=params)
+
+# Example 3: Custom label filtering
+params = QueryParams(time_range=["Phase-Alpha", "Sprint-3"], enable_time_filtering=True)
+result = rag.query("What progress was made in project phases?", query_params=params)
+
+# Example 4: Temporal expansion modes
+params = QueryParams(
+    time_range=["2024Q1"],
+    enable_time_filtering=True,
+    temporal_expansion_mode="expanded"  # Include adjacent periods
+)
+result = rag.query("Q1 2024 performance with context", query_params=params)
 ```
 
 ### 📊 **Method 3: Complete Result Analysis**
@@ -283,10 +324,11 @@ rag = TimeRAGSystem(
 
 ### 1. **Temporal Metadata is Essential**
 ```python
-# ✅ Correct: Include time information (any supported format)
-rag.insert(text, doc_id, metadata={"timestamp": "2024Q1"})      # Quarters
-rag.insert(text, doc_id, metadata={"date": "2024-03-15"})       # ISO dates
-rag.insert(text, doc_id, metadata={"time": "March 2024"})       # Month names
+# ✅ Correct: Include time information in 'date' field (any supported format)
+rag.insert(text, doc_id, metadata={"date": "2024Q1"})          # Quarters
+rag.insert(text, doc_id, metadata={"date": "2024-03-15"})      # ISO dates
+rag.insert(text, doc_id, metadata={"date": "March 2024"})      # Month names
+rag.insert(text, doc_id, metadata={"date": "Phase-Alpha"})     # Custom labels
 
 # ❌ Incorrect: Missing temporal metadata
 rag.insert(text, doc_id)  # Won't work properly for temporal analysis
@@ -304,16 +346,16 @@ rag.build_temporal_links()  # Don't forget this!
 
 ### 3. **Supported Time Formats**
 ```python
-# ✅ All supported formats
-metadata = {"timestamp": "2024Q1"}        # Quarters (backward compatible)
-metadata = {"timestamp": "2024-03-15"}    # ISO dates
-metadata = {"date": "2024-03"}            # Year-month
-metadata = {"timestamp": "2024"}          # Years only
-metadata = {"time": "March 2024"}         # Month names
-metadata = {"timestamp": "Phase-Alpha"}   # Custom labels
+# ✅ All supported formats (unified 'date' field)
+metadata = {"date": "2024Q1"}        # Quarters
+metadata = {"date": "2024-03-15"}    # ISO dates
+metadata = {"date": "2024-03"}       # Year-month
+metadata = {"date": "2024"}          # Years only
+metadata = {"date": "March 2024"}    # Month names
+metadata = {"date": "Phase-Alpha"}   # Custom labels
 
-# 📝 Multiple time field names supported
-# The system checks: timestamp, quarter, date, time, period
+# 📝 Unified field name: 'date'
+# Single field for all time formats - no need to remember multiple field names!
 ```
 
 ## 🎬 Run the Demos
@@ -329,11 +371,15 @@ python flexible_time_demo.py
 ```
 
 The demos will show you:
-- **demo.py**: Basic functionality with quarter-based temporal analysis
-- **flexible_time_demo.py**: Advanced time format support (ISO dates, months, custom labels)
+- **demo.py**: Basic functionality with unified `date` field
+- **flexible_time_demo.py**: Advanced features including:
+  - All time formats (quarters, ISO dates, months, years, custom labels)
+  - time_range query filtering with QueryParams
+  - Temporal expansion modes comparison
+  - Mixed time format queries
 - System initialization and document indexing
 - Temporal connection building across different time formats
-- Multiple query examples with flexible time ranges
+- Multiple query examples with time_range filtering
 - Detailed result analysis
 
 ## 📁 Project Structure

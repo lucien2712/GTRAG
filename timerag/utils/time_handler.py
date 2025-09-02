@@ -186,13 +186,10 @@ class TimeHandler:
     def extract_time_from_metadata(cls, metadata: Dict[str, Any]) -> Optional[TimePoint]:
         """
         Extract time information from metadata dictionary.
-        Checks multiple possible keys: timestamp, quarter, date, time
+        Only uses the unified 'date' field.
         """
-        time_keys = ['timestamp', 'quarter', 'date', 'time', 'period']
-        
-        for key in time_keys:
-            if key in metadata:
-                return cls.parse_time(metadata[key])
+        if 'date' in metadata:
+            return cls.parse_time(metadata['date'])
         
         return None
     

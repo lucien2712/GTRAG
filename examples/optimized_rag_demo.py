@@ -50,7 +50,7 @@ def main():
             The company's diverse revenue streams and strong Services growth offset
             hardware declines in certain categories.
             """,
-            "metadata": {"quarter": "2024Q1", "company": "Apple", "report_type": "earnings"}
+            "metadata": {"date": "2024Q1", "company": "Apple", "report_type": "earnings"}
         },
         {
             "doc_id": "apple_earnings_2024q2",
@@ -81,7 +81,7 @@ def main():
             Apple expressed optimism about upcoming product cycles and the potential
             for AI to drive new growth opportunities across its ecosystem.
             """,
-            "metadata": {"quarter": "2024Q2", "company": "Apple", "report_type": "earnings"}
+            "metadata": {"date": "2024Q2", "company": "Apple", "report_type": "earnings"}
         },
         {
             "doc_id": "apple_earnings_2024q3",
@@ -115,7 +115,7 @@ def main():
             The company's integrated approach to AI across hardware and software
             is seen as a key competitive advantage.
             """,
-            "metadata": {"quarter": "2024Q3", "company": "Apple", "report_type": "earnings"}
+            "metadata": {"date": "2024Q3", "company": "Apple", "report_type": "earnings"}
         }
     ]
     
