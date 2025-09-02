@@ -74,6 +74,19 @@ class QueryParams:
     similarity_threshold: float = 0.3
     enable_multi_hop: bool = True  # Enable multi-hop queries
 
+    # Time range parameters
+    time_range: Optional[List[str]] = None  # e.g., ["2024Q1", "2024Q2"] or ["2023Q4"]
+    enable_time_filtering: bool = False  # Enable temporal filtering
+    
+    # Temporal expansion modes
+    temporal_expansion_mode: str = "with_temporal"  # strict/with_temporal/expanded
+    temporal_evolution_scope: str = "cross_time"    # within_range/cross_time/all
+    include_temporal_evolution: bool = True  # Include temporal evolution edges in results
+    
+    # Time-semantic balance weights
+    temporal_weight: float = 0.4  # Weight for temporal relevance (0.0-1.0)
+    semantic_weight: float = 0.6  # Weight for semantic relevance (0.0-1.0)
+
     # Hybrid retrieval weights
     centrality_weight: float = 0.3  # Graph centrality weight
     similarity_weight: float = 0.7  # Semantic similarity weight
@@ -91,6 +104,13 @@ class QueryParams:
             "max_neighbors_per_hop": self.max_neighbors_per_hop,
             "similarity_threshold": self.similarity_threshold,
             "enable_multi_hop": self.enable_multi_hop,
+            "time_range": self.time_range,
+            "enable_time_filtering": self.enable_time_filtering,
+            "temporal_expansion_mode": self.temporal_expansion_mode,
+            "temporal_evolution_scope": self.temporal_evolution_scope,
+            "include_temporal_evolution": self.include_temporal_evolution,
+            "temporal_weight": self.temporal_weight,
+            "semantic_weight": self.semantic_weight,
             "centrality_weight": self.centrality_weight,
             "similarity_weight": self.similarity_weight,
             "entity_max_tokens": self.entity_max_tokens,

@@ -130,34 +130,90 @@ class TimeRAGSystem:
         logger.info(f"Processing query: {question}")
         params = query_params or self.token_manager.limits
 
+        # Validate time range if provided
+        if params.time_range:
+            from ..utils.time_range import TimeRangeParser
+            is_valid, error_msg = TimeRangeParser.validate_time_range(params.time_range)
+            if not is_valid:
+                logger.error(f"Invalid time range: {error_msg}")
+                return {
+                    "answer": f"Error: {error_msg}",
+                    "retrieved_entities": [],
+                    "retrieved_relations": [],
+                    "retrieved_source_chunks": [],
+                    "token_stats": {"total_tokens": 0},
+                    "query_intent": {}
+                }
+            # Auto-enable time filtering if time_range is provided
+            if params.time_range and not params.enable_time_filtering:
+                params.enable_time_filtering = True
+                logger.info("Auto-enabled time filtering due to time_range specification")
+
         # 1. Query understanding
         query_intent = self.retriever.understand_query(question)
         logger.info(f"Query analysis completed: {query_intent.get('query_intent', 'N/A')}")
 
-        # 2. Graph retrieval
+        # 2. Graph retrieval with enhanced time filtering support
         retrieved_entities, retrieved_relations = self.retriever.search(
             intent=query_intent,
             top_k=params.top_k,
-            similarity_threshold=params.similarity_threshold
+            similarity_threshold=params.similarity_threshold,
+            time_range=params.time_range,
+            enable_time_filtering=params.enable_time_filtering,
+            temporal_expansion_mode=params.temporal_expansion_mode,
+            temporal_evolution_scope=params.temporal_evolution_scope,
+            semantic_weight=params.semantic_weight,
+            temporal_weight=params.temporal_weight
         )
         logger.info(f"Retrieved {len(retrieved_entities)} entities, {len(retrieved_relations)} relations.")
 
-        # 3. Find corresponding original text chunks
-        source_chunk_ids = set()
+        # 3. Two-stage chunk retrieval strategy
+        # Stage 1: Get chunks from retrieved entities/relations
+        primary_chunk_ids = set()
         for item in retrieved_entities + retrieved_relations:
             if 'chunk_id' in item.get('metadata', {}):
-                source_chunk_ids.add(item['metadata']['chunk_id'])
+                primary_chunk_ids.add(item['metadata']['chunk_id'])
         
-        source_chunks = [self.chunk_store[cid] for cid in source_chunk_ids if cid in self.chunk_store]
-        logger.info(f"Found {len(source_chunks)} relevant original text chunks.")
+        primary_chunks = [self.chunk_store[cid] for cid in primary_chunk_ids if cid in self.chunk_store]
+        
+        # Stage 2: Get additional chunks from time range (excluding already retrieved ones)
+        supplementary_chunks = []
+        if params.enable_time_filtering and params.time_range:
+            from ..utils.time_range import TimeRangeParser
+            valid_quarters = TimeRangeParser.parse_time_range(params.time_range)
+            if valid_quarters:
+                # Collect time-relevant chunk IDs that are NOT already in primary chunks
+                time_relevant_chunk_ids = set()
+                for chunk_id in self.chunk_store.keys():
+                    if chunk_id not in primary_chunk_ids:  # Avoid duplicates
+                        chunk_quarter = self._extract_quarter_from_chunk_id(chunk_id)
+                        if chunk_quarter in valid_quarters:
+                            time_relevant_chunk_ids.add(chunk_id)
+                
+                # Add supplementary chunks (already deduplicated)
+                supplementary_chunks = [self.chunk_store[cid] for cid in time_relevant_chunk_ids]
+                # Limit to avoid overwhelming context
+                supplementary_chunks = supplementary_chunks[:min(3, len(primary_chunks))]
+        
+        # Combine chunks (no duplicates since we used sets for IDs)
+        source_chunks = primary_chunks + supplementary_chunks
+        logger.info(f"Found {len(primary_chunks)} primary + {len(supplementary_chunks)} supplementary = {len(source_chunks)} total unique chunks.")
 
         # 4. Prepare context data (entities + relations + chunks)
         context_data = self._format_context_data(retrieved_entities, retrieved_relations, source_chunks)
         
         # 5. Generate answer using RAG response prompt
         system_prompt = "You are a helpful assistant that provides accurate answers based on knowledge graph entities, relationships, and document chunks."
+        
+        # Add time range context if filtering was applied
+        time_context = ""
+        if params.enable_time_filtering and params.time_range:
+            from ..utils.time_range import TimeRangeParser
+            expanded_quarters = TimeRangeParser.expand_time_range(params.time_range)
+            time_context = f"\n---Time Range---\nAnalysis limited to time period: {', '.join(expanded_quarters)}\n"
+        
         rag_prompt = f"""---Context Data---
-{context_data}
+{context_data}{time_context}
 
 ---User Query---
 {question}
@@ -223,6 +279,16 @@ List the most relevant sources used
                 context_parts.append(f"**Chunk {i}:** {chunk[:500]}..." if len(chunk) > 500 else f"**Chunk {i}:** {chunk}")
         
         return "\n".join(context_parts)
+
+    def _extract_quarter_from_chunk_id(self, chunk_id: str) -> Optional[str]:
+        """
+        Extract quarter information from chunk ID.
+        Assumes chunk IDs contain quarter info like 'doc_2024Q1_chunk1'.
+        """
+        import re
+        quarter_pattern = re.compile(r'(\d{4}Q[1-4])')
+        match = quarter_pattern.search(chunk_id)
+        return match.group(1) if match else None
 
     def save_graph(self, filepath: str):
         """Save the current knowledge graph and chunk store to files."""
