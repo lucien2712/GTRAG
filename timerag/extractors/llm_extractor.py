@@ -196,15 +196,15 @@ class LLMExtractor:
             logger.error(f"Error extracting information from document ID '{doc_id}': {e}")
             return [], []
 
-    def understand_query(self, query: str) -> Dict[str, Any]:
+    def extract_keywords(self, query: str) -> Dict[str, Any]:
         """
-        Analyze user query to extract keywords and intent for retrieval.
+        Extract keywords from user query for retrieval.
         
         Args:
             query: User's question
             
         Returns:
-            Dictionary with query understanding results
+            Dictionary with extracted keywords
         """
         prompts = self.prompt_templates.get_query_understanding_prompt(query)
         
@@ -215,16 +215,14 @@ class LLMExtractor:
             return {
                 "original_query": query,
                 "high_level_keywords": query_analysis.get("high_level_keywords", []),
-                "low_level_keywords": query_analysis.get("low_level_keywords", []),
-                "query_intent": "information_retrieval"
+                "low_level_keywords": query_analysis.get("low_level_keywords", [])
             }
         except Exception as e:
-            logger.error(f"Error understanding query '{query}': {e}")
+            logger.error(f"Error extracting keywords from query '{query}': {e}")
             return {
                 "original_query": query,
                 "high_level_keywords": [],
-                "low_level_keywords": [],
-                "query_intent": "unknown"
+                "low_level_keywords": []
             }
 
     def _parse_extraction_output(self, response_text: str, text: str, doc_id: str, metadata: Dict[str, Any]) -> Tuple[List[Entity], List[Relation]]:

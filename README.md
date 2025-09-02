@@ -45,19 +45,67 @@ TimeRAG operates through the following workflow:
 ```
 Documents -> [1. Chunking] -> [2. LLM Extraction] -> [3. Graph Building] -> [4. Temporal Linking]
 
-User Query -> [5. Query Understanding] -> [6. Graph Retrieval] -> [7. Context Assembly] -> [8. LLM Answer Generation]
+User Query -> [5. Keywords Extraction] -> [6. Graph Retrieval] -> [7. Context Assembly] -> [8. LLM Answer Generation]
 ```
+
+### Detailed Workflow
+
+#### 📝 Document Insertion (`rag.insert()`)
+
+1. **Document Chunking** (`processing/chunker.py`)
+   - Split document into manageable segments using intelligent tokenization
+   - Apply configurable token limits with overlap between chunks
+   - Preserve temporal metadata (quarter information) in each chunk
+
+2. **LLM Information Extraction** (`extractors/llm_extractor.py`)
+   - Process each chunk through LLM using specialized prompts
+   - Extract structured entities (name, type, description) and relationships (source, target, keywords, description)
+   - Support 8 entity types: COMPANY, PERSON, PRODUCT, FINANCIAL_METRIC, BUSINESS_CONCEPT, MARKET, TECHNOLOGY, GEOGRAPHIC
+
+3. **Knowledge Graph Building** (`graph/builder.py`)
+   - Add extracted entities and relationships to NetworkX graph structure
+   - Generate embeddings for semantic similarity (using SentenceTransformer or custom function)
+   - Store original chunk content for later context retrieval
+
+4. **Temporal Linking** (`rag.build_temporal_links()`)
+   - **Required step**: Must be called after all document insertions
+   - Build "temporal_evolution" edges between same entities across different time periods
+   - Create three-layer graph structure: Time Layer (quarters) + Entity Layer (within-quarter) + Cross-Time Layer (evolution connections)
+
+#### 🔍 Query Processing (`rag.query()`)
+
+5. **Keywords Extraction** (`extractors/llm_extractor.py`)
+   - Use LLM to extract high-level keywords (concepts, themes) and low-level keywords (specific entities, terms) from user question
+   - Return structured keyword dictionary for graph retrieval
+
+6. **Multi-Stage Graph Retrieval** (`graph/retriever.py`)
+   - **Stage 1**: Semantic search using extracted keywords against entity/relation embeddings
+   - **Stage 2**: Multi-hop expansion with configurable depth (max_hops parameter)
+   - **Stage 3**: Time-aware filtering (if time_range specified) with temporal relevance scoring
+   - **Stage 4**: Relation-entity expansion (automatically include connected nodes from retrieved relationships)
+   - Support multiple temporal expansion modes: strict, with_temporal, expanded
+
+7. **Context Assembly** (`processing/token_manager.py`)
+   - **Primary Chunks**: Retrieve original text chunks from entities/relationships found in graph
+   - **Supplementary Chunks**: Add time-relevant chunks (if time filtering enabled) to provide broader context
+   - Apply deduplication to avoid sending same chunk content multiple times to LLM
+   - Smart truncation based on token limits while preserving most relevant information
+
+8. **Answer Generation**
+   - Format retrieved context (entities + relationships + chunks) into structured prompt
+   - Add time range context if filtering was applied
+   - Generate comprehensive answer using LLM with proper citations and evidence
 
 ### Core Components
 
-1. **Document Chunking**: Split long documents into manageable segments
-2. **Information Extraction**: Use LLM to extract entities and relationships from each segment  
-3. **Knowledge Graph Construction**: Store extracted information in `networkx` graph structure
-4. **Temporal Linking**: Build "evolution" relationship edges between same entities across different time periods
-5. **Query Understanding**: Use LLM to analyze user questions and extract keywords and intent
-6. **Graph Retrieval**: Search knowledge graph for nodes and paths most relevant to the question
-7. **Context Assembly**: Combine retrieved information and truncate based on token limits
-8. **Answer Generation**: Pass assembled context and original question to LLM for final answer
+1. **Document Chunking**: Split long documents into manageable segments with intelligent tokenization
+2. **Information Extraction**: Use LLM to extract entities and relationships from each segment using configurable prompts  
+3. **Knowledge Graph Construction**: Store extracted information in `networkx` graph structure with embeddings
+4. **Temporal Linking**: Build "temporal_evolution" relationship edges between same entities across different time periods
+5. **Keywords Extraction**: Use LLM to extract high-level and low-level keywords from user questions
+6. **Graph Retrieval**: Multi-stage retrieval including semantic search, multi-hop expansion, time filtering, and relation-entity expansion
+7. **Context Assembly**: Two-stage chunk retrieval with deduplication and smart truncation based on token limits
+8. **Answer Generation**: Pass assembled context and original question to LLM for final answer with citations
 
 ## Installation
 
@@ -164,6 +212,11 @@ answer = result["answer"]
 entities = result["retrieved_entities"]       # Extracted entities
 relations = result["retrieved_relations"]     # Entity relationships  
 chunks = result["retrieved_source_chunks"]    # Original text segments
+
+# Keywords extraction results
+keywords = result["query_keywords"]
+print(f"High-level keywords: {keywords['high_level_keywords']}")
+print(f"Low-level keywords: {keywords['low_level_keywords']}")
 
 # System metrics
 token_stats = result["token_stats"]
@@ -346,8 +399,9 @@ Temporal:      Apple_2024Q1──evolution──→Apple_2024Q2──evolution�
 1. **📝 Document Chunking**: Intelligently splits long documents
 2. **🧠 LLM Extraction**: Extracts entities and relationships using customizable prompts
 3. **🕸️ Knowledge Graph**: Creates temporal-aware graph with NetworkX
-4. **🔍 Smart Retrieval**: Multi-hop graph traversal with semantic similarity
-5. **🎯 Answer Generation**: Synthesizes retrieved information into coherent answers
+4. **🔤 Keywords Extraction**: Extracts high-level and low-level keywords from queries
+5. **🔍 Smart Retrieval**: Multi-hop graph traversal with semantic similarity
+6. **🎯 Answer Generation**: Synthesizes retrieved information into coherent answers
 
 ## 📁 Project Structure
 

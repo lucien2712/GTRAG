@@ -50,27 +50,27 @@ class GraphRetriever:
         self.graph = graph_builder.graph
         self.extractor = extractor
     
-    def understand_query(self, query: str) -> Dict[str, Any]:
+    def extract_keywords(self, query: str) -> Dict[str, Any]:
         """
-        Use LLM to analyze user query and generate structured intent and keywords.
+        Extract keywords from user query for retrieval.
         
         Args:
             query: User's natural language question
             
         Returns:
-            Dictionary containing query understanding results
+            Dictionary containing extracted keywords
         """
-        return self.extractor.understand_query(query)
+        return self.extractor.extract_keywords(query)
 
-    def search(self, intent: Dict[str, Any], top_k: int = 10, similarity_threshold: float = 0.3, 
+    def search(self, keywords: Dict[str, Any], top_k: int = 10, similarity_threshold: float = 0.3, 
               time_range: Optional[List[str]] = None, enable_time_filtering: bool = False,
               temporal_expansion_mode: str = "with_temporal", temporal_evolution_scope: str = "cross_time",
               semantic_weight: float = 0.6, temporal_weight: float = 0.4) -> Tuple[List[Dict], List[Dict]]:
         """
-        Retrieve entities and relationships from the graph based on query intent.
+        Retrieve entities and relationships from the graph based on extracted keywords.
 
         Args:
-            intent: Structured query intent from understand_query
+            keywords: Extracted keywords dictionary with high_level_keywords and low_level_keywords
             top_k: Maximum number of results to return
             similarity_threshold: Semantic similarity threshold
             time_range: Time range specification (e.g., ["2024Q1", "2024Q2"])
@@ -83,8 +83,8 @@ class GraphRetriever:
         Returns:
             Tuple of (entities list, relations list)
         """
-        high_level_keys = intent.get("high_level_keywords", [])
-        low_level_keys = intent.get("low_level_keywords", [])
+        high_level_keys = keywords.get("high_level_keywords", [])
+        low_level_keys = keywords.get("low_level_keywords", [])
         
         # Parse time range for time-aware filtering and scoring
         valid_quarters = None

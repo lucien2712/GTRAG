@@ -142,20 +142,20 @@ class TimeRAGSystem:
                     "retrieved_relations": [],
                     "retrieved_source_chunks": [],
                     "token_stats": {"total_tokens": 0},
-                    "query_intent": {}
+                    "query_keywords": {}
                 }
             # Auto-enable time filtering if time_range is provided
             if params.time_range and not params.enable_time_filtering:
                 params.enable_time_filtering = True
                 logger.info("Auto-enabled time filtering due to time_range specification")
 
-        # 1. Query understanding
-        query_intent = self.retriever.understand_query(question)
-        logger.info(f"Query analysis completed: {query_intent.get('query_intent', 'N/A')}")
+        # 1. Keywords extraction  
+        query_keywords = self.retriever.extract_keywords(question)
+        logger.info(f"Keywords extracted: high_level={len(query_keywords.get('high_level_keywords', []))}, low_level={len(query_keywords.get('low_level_keywords', []))}")
 
         # 2. Graph retrieval with enhanced time filtering support
         retrieved_entities, retrieved_relations = self.retriever.search(
-            intent=query_intent,
+            keywords=query_keywords,
             top_k=params.top_k,
             similarity_threshold=params.similarity_threshold,
             time_range=params.time_range,
@@ -249,7 +249,7 @@ List the most relevant sources used
             "retrieved_relations": retrieved_relations,
             "retrieved_source_chunks": source_chunks,
             "token_stats": token_stats,
-            "query_intent": query_intent
+            "query_keywords": query_keywords
         }
 
     def _format_context_data(self, entities: List[Dict], relations: List[Dict], chunks: List[str]) -> str:
