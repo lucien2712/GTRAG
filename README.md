@@ -346,7 +346,6 @@ rag = TimeRAGSystem(
 rag.insert(text, doc_id, metadata={"date": "2024Q1"})          # Quarters
 rag.insert(text, doc_id, metadata={"date": "2024-03-15"})      # ISO dates
 rag.insert(text, doc_id, metadata={"date": "March 2024"})      # Month names
-rag.insert(text, doc_id, metadata={"date": "Phase-Alpha"})     # Custom labels
 
 # ❌ Incorrect: Missing temporal metadata
 rag.insert(text, doc_id)  # Won't work properly for temporal analysis
