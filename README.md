@@ -223,7 +223,7 @@ print(f"📝 Stored chunks: {stats['stored_chunks']}")
 from timerag import TimeRAGSystem, QueryParams, ChunkingConfig
 
 # Custom chunking configuration
-chunk_config = 幫Config(
+chunk_config = Config(
     MAX_TOKENS_PER_CHUNK=2000,    # Chunk size
     OVERLAP_TOKENS=300            # Overlap between chunks
 )
