@@ -96,16 +96,18 @@ User Query -> [5. Keywords Extraction] -> [6. Graph Retrieval] -> [7. Context As
    - Add time range context if filtering was applied
    - Generate comprehensive answer using LLM with proper citations and evidence
 
-### Core Components
+### Three-Layer Graph Structure
 
-1. **Document Chunking**: Split long documents into manageable segments with intelligent tokenization
-2. **Information Extraction**: Use LLM to extract entities and relationships from each segment using configurable prompts  
-3. **Knowledge Graph Construction**: Store extracted information in `networkx` graph structure with embeddings
-4. **Temporal Linking**: Build "temporal_evolution" relationship edges between same entities across different time periods
-5. **Keywords Extraction**: Use LLM to extract high-level and low-level keywords from user questions
-6. **Graph Retrieval**: Multi-stage retrieval including semantic search, multi-hop expansion, time filtering, and relation-entity expansion
-7. **Context Assembly**: Two-stage chunk retrieval with deduplication and smart truncation based on token limits
-8. **Answer Generation**: Pass assembled context and original question to LLM for final answer with citations
+TimeRAG creates a temporal-aware knowledge graph with three interconnected layers:
+
+```
+Time Layer:    2023Q4 ──→ 2024Q1 ──→ 2024Q2 ──→ 2024Q3
+
+Entity Layer:  Apple──produces──→iPhone    Microsoft──develops──→Azure
+               │                   │        │                      │
+               │                   │        │                      │
+Temporal:      Apple_2024Q1──evolution──→Apple_2024Q2──evolution──→...
+```
 
 ## Installation
 
@@ -124,32 +126,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 
 ### 🔍 **Method 1: Basic Usage**
 
-```python
-from timerag import TimeRAGSystem
-
-# Initialize system (uses OpenAI by default)
-rag = TimeRAGSystem()
-
-# Index documents - quarter metadata is essential for temporal analysis
-rag.insert(
-    text="Microsoft cloud revenue grew 30% in Q1 2024, driven by Azure expansion.",
-    doc_id="msft_q1_2024",
-    metadata={"quarter": "2024Q1"}  # 👈 This is the key for temporal awareness
-)
-
-rag.insert(
-    text="Microsoft cloud continued strong growth at 35% in Q2 2024.",
-    doc_id="msft_q2_2024", 
-    metadata={"quarter": "2024Q2"}
-)
-
-# Build temporal connections (required after indexing)
-rag.build_temporal_links()
-
-# Query with natural language
-result = rag.query("How is Microsoft's cloud business performing over time?")
-print(result["answer"])
-```
+For basic usage, see the [Quick Start](#-quick-start) section above.
 
 ### 🎛️ **Method 2: Custom Configuration**
 
@@ -381,27 +358,6 @@ query_params = QueryParams(
 )
 ```
 
-## 🏗️ System Architecture
-
-TimeRAG uses a **three-layer temporal graph** structure:
-
-```
-Time Layer:    2023Q4 ──→ 2024Q1 ──→ 2024Q2 ──→ 2024Q3
-
-Entity Layer:  Apple──produces──→iPhone    Microsoft──develops──→Azure
-               │                   │        │                      │
-               │                   │        │                      │
-Temporal:      Apple_2024Q1──evolution──→Apple_2024Q2──evolution──→...
-```
-
-### Core Components
-
-1. **📝 Document Chunking**: Intelligently splits long documents
-2. **🧠 LLM Extraction**: Extracts entities and relationships using customizable prompts
-3. **🕸️ Knowledge Graph**: Creates temporal-aware graph with NetworkX
-4. **🔤 Keywords Extraction**: Extracts high-level and low-level keywords from queries
-5. **🔍 Smart Retrieval**: Multi-hop graph traversal with semantic similarity
-6. **🎯 Answer Generation**: Synthesizes retrieved information into coherent answers
 
 ## 📁 Project Structure
 
