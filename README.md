@@ -66,42 +66,42 @@ User Query -> [5. Keywords Extraction] -> [6. Graph Retrieval] -> [7. Context As
 
 ### Detailed Workflow
 
-#### 📝 Document Insertion (`rag.insert()`)
+#### 📝 Document Insertion
 
-1. **Document Chunking** (`processing/chunker.py`)
+1. **Document Chunking**
    - Split document into manageable segments using intelligent tokenization
    - Apply configurable token limits with overlap between chunks
    - Preserve temporal metadata (quarter information) in each chunk
 
-2. **LLM Information Extraction** (`extractors/llm_extractor.py`)
+2. **LLM Information Extraction**
    - Process each chunk through LLM using specialized prompts
    - Extract structured entities (name, type, description) and relationships (source, target, keywords, description)
    - Support 8 entity types: COMPANY, PERSON, PRODUCT, FINANCIAL_METRIC, BUSINESS_CONCEPT, MARKET, TECHNOLOGY, GEOGRAPHIC
 
-3. **Knowledge Graph Building** (`graph/builder.py`)
+3. **Knowledge Graph Building**
    - Add extracted entities and relationships to NetworkX graph structure
    - Generate embeddings for semantic similarity (using SentenceTransformer or custom function)
    - Store original chunk content for later context retrieval
 
-4. **Temporal Linking** (`rag.build_temporal_links()`)
+4. **Temporal Linking**
    - **Required step**: Must be called after all document insertions
    - Build "temporal_evolution" edges between same entities across different time periods
    - Create three-layer graph structure: Time Layer (quarters) + Entity Layer (within-quarter) + Cross-Time Layer (evolution connections)
 
-#### 🔍 Query Processing (`rag.query()`)
+#### 🔍 Query Processing
 
-5. **Keywords Extraction** (`extractors/llm_extractor.py`)
+5. **Keywords Extraction**
    - Use LLM to extract high-level keywords (concepts, themes) and low-level keywords (specific entities, terms) from user question
    - Return structured keyword dictionary for graph retrieval
 
-6. **Multi-Stage Graph Retrieval** (`graph/retriever.py`)
+6. **Multi-Stage Graph Retrieval**
    - **Stage 1**: Semantic search using extracted keywords against entity/relation embeddings
    - **Stage 2**: Multi-hop expansion with configurable depth (max_hops parameter)
    - **Stage 3**: Time-aware filtering (if time_range specified) with temporal relevance scoring
    - **Stage 4**: Relation-entity expansion (automatically include connected nodes from retrieved relationships)
    - Support multiple temporal expansion modes: strict, with_temporal, expanded
 
-7. **Context Assembly** (`processing/token_manager.py`)
+7. **Context Assembly** 
    - **Primary Chunks**: Retrieve original text chunks from entities/relationships found in graph
    - **Supplementary Chunks**: Add time-relevant chunks (if time filtering enabled) to provide broader context
    - Apply deduplication to avoid sending same chunk content multiple times to LLM
@@ -209,10 +209,6 @@ params = QueryParams(
     enable_time_filtering=True
 )
 result = rag.query("Show trends across different periods", query_params=params)
-
-# Example 3: Custom label filtering
-params = QueryParams(time_range=["Phase-Alpha", "Sprint-3"], enable_time_filtering=True)
-result = rag.query("What progress was made in project phases?", query_params=params)
 
 # Example 4: Temporal expansion modes
 params = QueryParams(
