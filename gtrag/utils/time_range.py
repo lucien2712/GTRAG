@@ -1,5 +1,5 @@
 """
-Time range utilities for TimeRAG system.
+Time range utilities for gtrag system.
 
 This module provides utilities for parsing and validating time ranges,
 supporting flexible time formats through the TimeHandler class.

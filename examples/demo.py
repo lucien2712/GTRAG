@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-TimeRAG API Usage Demo
+gtrag API Usage Demo
 
 This example demonstrates how to initialize the system, index documents, and make queries
-using the new refactored timerag package structure.
+using the new refactored gtrag package structure.
 
 This demo shows the complete workflow:
 1. System initialization with custom LLM/embedding functions
@@ -15,11 +15,11 @@ import os
 import sys
 from pathlib import Path
 
-# Add project root to Python path to find timerag module
+# Add project root to Python path to find gtrag module
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from timerag import TimeRAGSystem, QueryParams
+from gtrag import gtragSystem, QueryParams
 
 # Optional dotenv loading
 try:
@@ -74,7 +74,7 @@ def openai_embedding_func(text: str) -> list:
 def main():
     """Main execution function"""
     print("=" * 60)
-    print("TimeRAG API Usage Demo")
+    print("gtrag API Usage Demo")
     print("=" * 60)
     
     # Check if API key exists
@@ -85,9 +85,9 @@ def main():
         print()
     
     # 1. Initialize System
-    print("1. 🚀 Initializing TimeRAG System...")
+    print("1. 🚀 Initializing gtrag System...")
     try:
-        rag = TimeRAGSystem(
+        rag = gtragSystem(
             llm_func=gpt_4o_mini_llm,
             embedding_func=openai_embedding_func
         )
@@ -224,11 +224,11 @@ def main():
     print("=" * 60)
     
     # Save the knowledge graph to working directory
-    working_dir = "./demo_timerag_workspace/"
-    print(f"\n8. 💾 Saving TimeRAG system to working directory '{working_dir}'...")
+    working_dir = "./demo_gtrag_workspace/"
+    print(f"\n8. 💾 Saving gtrag system to working directory '{working_dir}'...")
     try:
         save_result = rag.save_graph(working_dir)
-        print(f"   ✅ TimeRAG system saved successfully!")
+        print(f"   ✅ gtrag system saved successfully!")
         print(f"   📁 Working directory created: {save_result['working_dir']}")
         print(f"   📁 Files created:")
         print(f"      - graph.json (Knowledge graph with entities/relations)")
@@ -253,15 +253,15 @@ def main():
         traceback.print_exc()
     
     # Demonstrate loading in a new session
-    print(f"\n9. 📂 Loading TimeRAG system from working directory...")
+    print(f"\n9. 📂 Loading gtrag system from working directory...")
     try:
         # Create a new RAG system instance (simulating new session)
-        new_rag = TimeRAGSystem(
+        new_rag = gtragSystem(
             llm_func=gpt_4o_mini_llm,
             embedding_func=openai_embedding_func
         )
         load_result = new_rag.load_graph(working_dir)
-        print(f"   ✅ TimeRAG system loaded successfully!")
+        print(f"   ✅ gtrag system loaded successfully!")
         print(f"   📂 Loaded from: {load_result['working_dir']}")
         print(f"   📊 Components loaded:")
         print(f"      - Graph: {'✅' if load_result['loaded_graph'] else '❌'}")
@@ -317,7 +317,7 @@ def demo_batch_processing():
     print("📁 Batch processing allows you to process multiple documents at once.")
     print("   Example usage:")
     print("""
-    from timerag.processing import BatchProcessor, BatchProcessingConfig
+    from gtrag.processing import BatchProcessor, BatchProcessingConfig
     
     # Configure batch processing
     config = BatchProcessingConfig(

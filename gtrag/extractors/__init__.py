@@ -1,4 +1,4 @@
-"""TimeRAG extractors for information extraction from text."""
+"""gtrag extractors for information extraction from text."""
 
 from .llm_extractor import LLMExtractor
 

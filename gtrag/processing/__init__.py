@@ -1,4 +1,4 @@
-"""TimeRAG processing modules for document chunking and token management."""
+"""gtrag processing modules for document chunking and token management."""
 
 from .chunker import DocumentChunker
 from .token_manager import TokenManager

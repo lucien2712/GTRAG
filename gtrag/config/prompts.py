@@ -1,5 +1,5 @@
 """
-Prompt configuration management for TimeRAG system.
+Prompt configuration management for gtrag system.
 
 This class dynamically loads prompt templates from the prompts module,
 allowing users to centrally manage all LLM interaction prompts.

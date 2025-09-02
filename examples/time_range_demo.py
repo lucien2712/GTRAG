@@ -1,5 +1,5 @@
 """
-TimeRAG Time Range Query Demo
+gtrag Time Range Query Demo
 
 This demo shows how to use the time range filtering functionality
 to query specific time periods in temporal data.
@@ -9,13 +9,13 @@ import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from timerag.core.system import TimeRAGSystem
-from timerag.config.settings import QueryParams
+from gtrag.core.system import gtragSystem
+from gtrag.config.settings import QueryParams
 
 
 def main():
-    # Initialize TimeRAG system
-    rag = TimeRAGSystem()
+    # Initialize gtrag system
+    rag = gtragSystem()
     
     # Sample temporal documents
     sample_documents = [
@@ -56,7 +56,7 @@ def main():
         }
     ]
     
-    print("=== TimeRAG Time Range Demo ===\n")
+    print("=== gtrag Time Range Demo ===\n")
     
     # Insert sample documents
     print("1. Inserting sample documents...")

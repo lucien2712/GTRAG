@@ -1,4 +1,4 @@
-"""TimeRAG utilities package."""
+"""gtrag utilities package."""
 
 from .time_range import TimeRangeParser, filter_nodes_by_time_range, filter_edges_by_time_range
 

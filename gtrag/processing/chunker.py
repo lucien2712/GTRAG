@@ -1,5 +1,5 @@
 """
-TimeRAG document chunking module.
+gtrag document chunking module.
 
 This module is responsible for splitting long documents into smaller,
 manageable text segments (chunks) based on specified token counts,

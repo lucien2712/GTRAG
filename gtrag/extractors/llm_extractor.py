@@ -1,5 +1,5 @@
 """
-TimeRAG information extraction module.
+gtrag information extraction module.
 
 This module contains the core `LLMExtractor` class, which is responsible for calling
 large language models (LLM) to extract structured information from text,

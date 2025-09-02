@@ -1,4 +1,4 @@
-"""TimeRAG configuration modules."""
+"""gtrag configuration modules."""
 
 from .settings import (
     QueryParams,

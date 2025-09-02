@@ -1,8 +1,8 @@
 """
-TimeRAG Core System
+gtrag Core System
 
 Main system orchestrator that provides a unified API for document indexing and querying.
-Integrates all TimeRAG components into a cohesive system.
+Integrates all gtrag components into a cohesive system.
 """
 
 import logging
@@ -31,9 +31,9 @@ from ..processing.token_manager import TokenManager
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-class TimeRAGSystem:
+class gtragSystem:
     """
-    Main TimeRAG system that integrates all components for document indexing and querying.
+    Main gtrag system that integrates all components for document indexing and querying.
     
     This class provides a simple API for:
     1. Document insertion with temporal metadata
@@ -48,7 +48,7 @@ class TimeRAGSystem:
                  query_params: Optional[QueryParams] = None,
                  chunking_config: Optional[ChunkingConfig] = None):
         """
-        Initialize the TimeRAG system with all core components.
+        Initialize the gtrag system with all core components.
         
         Args:
             openai_api_key: OpenAI API key (optional, can use env variable)
@@ -71,7 +71,7 @@ class TimeRAGSystem:
         self.chunk_store: Dict[str, str] = {}
         
         self.processing_stats = {"indexed_documents": 0, "indexed_chunks": 0}
-        logger.info("TimeRAG system initialized successfully.")
+        logger.info("gtrag system initialized successfully.")
 
     def insert(self, text: str, doc_id: str, metadata: Optional[Dict[str, Any]] = None):
         """
@@ -318,10 +318,10 @@ List the most relevant sources used
 
     def save_graph(self, working_dir: str):
         """
-        Save the complete TimeRAG system to a working directory.
+        Save the complete gtrag system to a working directory.
         
         Args:
-            working_dir: Directory path where all TimeRAG files will be saved
+            working_dir: Directory path where all gtrag files will be saved
             
         Files created:
             - graph.json: NetworkX knowledge graph with entities/relations
@@ -355,7 +355,7 @@ List the most relevant sources used
             except Exception as e:
                 logger.warning(f"Failed to save vector store: {e}")
         
-        logger.info(f"Complete TimeRAG system saved to working directory: {working_dir}")
+        logger.info(f"Complete gtrag system saved to working directory: {working_dir}")
         return {
             "working_dir": str(work_path),
             "graph_file": str(graph_path),
@@ -365,10 +365,10 @@ List the most relevant sources used
 
     def load_graph(self, working_dir: str):
         """
-        Load complete TimeRAG system from a working directory.
+        Load complete gtrag system from a working directory.
         
         Args:
-            working_dir: Directory path containing TimeRAG files
+            working_dir: Directory path containing gtrag files
             
         Expected files:
             - graph.json: Knowledge graph (required)
@@ -416,7 +416,7 @@ List the most relevant sources used
             except Exception as e:
                 logger.warning(f"Failed to load vector store: {e}")
         
-        logger.info(f"Complete TimeRAG system loaded from working directory: {working_dir}")
+        logger.info(f"Complete gtrag system loaded from working directory: {working_dir}")
         return {
             "working_dir": str(work_path),
             "loaded_graph": graph_path.exists(),

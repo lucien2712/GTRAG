@@ -1,5 +1,5 @@
 """
-Graph persistence utilities for TimeRAG.
+Graph persistence utilities for gtrag.
 
 Handles saving and loading of NetworkX graphs with metadata preservation.
 """
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class GraphPersistence:
-    """Utilities for saving and loading TimeRAG knowledge graphs."""
+    """Utilities for saving and loading gtrag knowledge graphs."""
     
     @staticmethod
     def save_graph(graph: nx.Graph, filepath: str, metadata: Optional[Dict[str, Any]] = None):
@@ -151,7 +151,7 @@ class GraphPersistence:
         avg_degree = sum(dict(graph.degree()).values()) / num_nodes if num_nodes > 0 else 0
         density = nx.density(graph)
         
-        # TimeRAG-specific stats
+        # gtrag-specific stats
         temporal_nodes = sum(1 for n, data in graph.nodes(data=True) 
                            if data.get('node_type') == 'time')
         entity_nodes = sum(1 for n, data in graph.nodes(data=True) 
@@ -180,7 +180,7 @@ class GraphPersistence:
     @staticmethod
     def validate_graph(graph: nx.Graph) -> Dict[str, Any]:
         """
-        Validate TimeRAG graph structure and return validation results.
+        Validate gtrag graph structure and return validation results.
         
         Args:
             graph: NetworkX graph to validate

@@ -1,5 +1,5 @@
 """
-Vector database implementations for TimeRAG.
+Vector database implementations for gtrag.
 
 Provides abstract interface and concrete implementations for vector storage
 and similarity search functionality.

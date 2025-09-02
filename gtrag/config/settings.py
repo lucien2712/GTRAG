@@ -1,7 +1,7 @@
 """
-TimeRAG system core configuration settings.
+gtrag system core configuration settings.
 
-This file defines configuration dataclasses for all TimeRAG modules,
+This file defines configuration dataclasses for all gtrag modules,
 making it easy to manage and customize system behavior.
 """
 import json
@@ -174,7 +174,7 @@ class VectorDBConfig:
     # Database connection settings
     host: Optional[str] = None
     port: Optional[int] = None
-    collection_name: str = "timerag_embeddings"
+    collection_name: str = "gtrag_embeddings"
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary format."""

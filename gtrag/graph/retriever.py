@@ -1,5 +1,5 @@
 """
-TimeRAG graph retrieval module.
+gtrag graph retrieval module.
 
 This module contains the core `GraphRetriever` class, which is responsible for
 retrieving the most relevant information from a constructed knowledge graph

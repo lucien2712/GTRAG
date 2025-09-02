@@ -1,5 +1,5 @@
 """
-TimeRAG Token management and truncation module.
+gtrag Token management and truncation module.
 
 This module contains the core `TokenManager` class, whose main responsibility
 is to ensure that the final context assembled for the large language model (LLM)

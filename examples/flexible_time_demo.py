@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-TimeRAG Flexible Time Format Demonstration
+gtrag Flexible Time Format Demonstration
 
-This demo showcases TimeRAG's new flexible time format support,
+This demo showcases gtrag's new flexible time format support,
 demonstrating various time formats beyond just quarters.
 """
 
@@ -10,18 +10,18 @@ import sys
 import os
 from pathlib import Path
 
-# Add the parent directory to Python path so we can import timerag
+# Add the parent directory to Python path so we can import gtrag
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from timerag.core.system import TimeRAGSystem
-from timerag.config.settings import QueryParams
+from gtrag.core.system import gtragSystem
+from gtrag.config.settings import QueryParams
 
 def main():
-    print("=== TimeRAG Flexible Time Format Demo ===\n")
+    print("=== gtrag Flexible Time Format Demo ===\n")
     
-    # Initialize TimeRAG system
-    print("1. Initializing TimeRAG system...")
-    rag = TimeRAGSystem()
+    # Initialize gtrag system
+    print("1. Initializing gtrag system...")
+    rag = gtragSystem()
     
     print("2. Indexing documents with various time formats...\n")
     

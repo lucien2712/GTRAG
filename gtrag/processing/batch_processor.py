@@ -1,5 +1,5 @@
 """
-Batch processing module for multi-file indexing in TimeRAG system.
+Batch processing module for multi-file indexing in gtrag system.
 
 This module provides functionality for processing multiple documents in parallel,
 supporting various file formats and providing progress tracking.
@@ -237,15 +237,15 @@ class QuarterExtractor:
 class BatchProcessor:
     """Main batch processor for handling multiple documents"""
     
-    def __init__(self, timerag_system, config: Optional[BatchProcessingConfig] = None):
+    def __init__(self, gtrag_system, config: Optional[BatchProcessingConfig] = None):
         """
         Initialize batch processor
         
         Args:
-            timerag_system: TimeRAG system instance
+            gtrag_system: gtrag system instance
             config: Batch processing configuration
         """
-        self.timerag_system = timerag_system
+        self.gtrag_system = gtrag_system
         self.config = config or BatchProcessingConfig()
         self.file_parser = FileParser()
         self.quarter_extractor = QuarterExtractor(self.config.quarter_extraction_pattern)
@@ -340,7 +340,7 @@ class BatchProcessor:
         # Build temporal links after all documents are processed
         if total_processed > 0:
             logger.info("Building temporal links...")
-            self.timerag_system.build_temporal_links()
+            self.gtrag_system.build_temporal_links()
         
         total_time = time.time() - start_time
         
@@ -411,13 +411,13 @@ class BatchProcessor:
                 **parsed_data['metadata']
             }
             
-            # Insert into TimeRAG system
-            self.timerag_system.insert(content, doc_id, metadata)
+            # Insert into gtrag system
+            self.gtrag_system.insert(content, doc_id, metadata)
             
             processing_time = time.time() - start_time
             
             # Get processing statistics
-            stats = self.timerag_system.get_stats()
+            stats = self.gtrag_system.get_stats()
             
             return DocumentInfo(
                 file_path=str(file_path),

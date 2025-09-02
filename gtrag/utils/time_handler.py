@@ -1,5 +1,5 @@
 """
-TimeRAG flexible time handling utilities.
+gtrag flexible time handling utilities.
 
 This module provides a unified interface for handling various time formats
 and temporal operations, replacing the quarter-only limitation with flexible

@@ -1,5 +1,5 @@
 """
-TimeRAG knowledge graph construction module.
+gtrag knowledge graph construction module.
 
 This module contains the core `GraphBuilder` class, which uses `networkx` to build,
 manage and store knowledge graphs. The graph consists of nodes representing "entities"
@@ -236,7 +236,7 @@ class GraphBuilder:
                 logger.warning(f"Cannot add relation {relation.type}: missing nodes {missing_nodes}")
     
     def build_temporal_connections(self):
-        """Build cross-temporal connection edges - this is one of TimeRAG's core features."""
+        """Build cross-temporal connection edges - this is one of gtrag's core features."""
         entity_nodes = {}
         
         # Group all nodes by entity name
@@ -341,7 +341,7 @@ class GraphBuilder:
             json.dump(graph_data, f, ensure_ascii=False, indent=2)
         
         logger.info(f"Graph saved to {filepath}")
-        # Note: Vector store is now saved separately by TimeRAGSystem
+        # Note: Vector store is now saved separately by gtragSystem
     
     def load(self, filepath: str):
         """Load graph data from JSON file and rebuild graph."""
@@ -355,7 +355,7 @@ class GraphBuilder:
         
         self.graph = nx.node_link_graph(graph_data)
         
-        # Initialize vector store if needed (but don't load - that's handled by TimeRAGSystem)
+        # Initialize vector store if needed (but don't load - that's handled by gtragSystem)
         if self.use_vector_store and not self.vector_store:
             try:
                 test_embedding = self.encode("test")
@@ -371,7 +371,7 @@ class GraphBuilder:
                 self.vector_store = None
         
         logger.info(f"Graph loaded from {filepath}")
-        # Note: Vector store loading is now handled by TimeRAGSystem
+        # Note: Vector store loading is now handled by gtragSystem
     
     def get_neighbors(self, node_id: str, relation_types: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """Get neighbors of a node with optional relation type filtering."""

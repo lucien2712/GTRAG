@@ -1,14 +1,14 @@
-# TimeRAG
+# GTRAG: Graph-based Temporal-aware RAG
 
-A **temporal-aware Retrieval-Augmented Generation (RAG)** framework that specializes in analyzing time-series data across multiple documents. Perfect for financial reports, market research, and any scenario requiring cross-temporal analysis.
+A **GTRAG** framework that specializes in analyzing time-series data across multiple documents. Perfect for financial reports, market research, and any scenario requiring cross-temporal analysis.
 
 ## 🚀 Quick Start
 
 ```python
-from timerag import TimeRAGSystem
+from gtrag import gtragSystem
 
 # 1. Initialize system
-rag = TimeRAGSystem()
+rag = gtragSystem()
 
 # 2. Index documents with flexible temporal metadata
 rag.insert(
@@ -35,7 +35,7 @@ result = rag.query("What happened in technology in 2023?")
 print(result["answer"])
 
 # 5. Query with specific time range filtering
-from timerag.config.settings import QueryParams
+from gtrag.config.settings import QueryParams
 
 params = QueryParams(
     time_range=["2023Q4", "2024Q1"],  # Focus on specific periods
@@ -56,7 +56,7 @@ print(result["answer"])
 
 ## System Architecture
 
-TimeRAG operates through the following workflow:
+gtrag operates through the following workflow:
 
 ```
 Documents -> [1. Chunking] -> [2. LLM Extraction] -> [3. Temporal Graph Building] -> [4. Temporal Evolution Links]
@@ -116,7 +116,7 @@ User Query -> [5. Keywords Extraction] -> [6. Time-Aware Retrieval] -> [7. Conte
 
 ### Unified Temporal-Aware Graph Structure
 
-TimeRAG creates a single knowledge graph where every entity and relationship includes temporal information:
+gtrag creates a single knowledge graph where every entity and relationship includes temporal information:
 
 ```
 ┌─────────────────── UNIFIED KNOWLEDGE GRAPH ──────────────────────┐
@@ -169,7 +169,7 @@ For basic usage, see the [Quick Start](#-quick-start) section above.
 ### 🎛️ **Method 2: Custom Configuration**
 
 ```python
-from timerag import TimeRAGSystem, QueryParams
+from gtrag import gtragSystem, QueryParams
 
 # Custom LLM function (optional)
 def my_llm_function(system_prompt: str, user_prompt: str) -> str:
@@ -183,7 +183,7 @@ def my_embedding_function(text: str) -> list:
     pass
 
 # Initialize with custom models
-rag = TimeRAGSystem(
+rag = gtragSystem(
     llm_func=my_llm_function,
     embedding_func=my_embedding_function
 )
@@ -219,7 +219,7 @@ result = rag.query(
 ### ⏰ **Time Range Filtering Examples**
 
 ```python
-from timerag.config.settings import QueryParams
+from gtrag.config.settings import QueryParams
 
 # Example 1: Quarter-based filtering
 params = QueryParams(time_range=["2023Q4"], enable_time_filtering=True)
@@ -283,18 +283,18 @@ for relation in relations[:3]:  # Show top 3
 ### 💾 **Persistence & Reloading**
 
 ```python
-# Save complete TimeRAG system to working directory
-rag.save_graph("./my_timerag_project/")
+# Save complete gtrag system to working directory
+rag.save_graph("./my_gtrag_project/")
 
 # Load in a new session
-new_rag = TimeRAGSystem()
-new_rag.load_graph("./my_timerag_project/")
+new_rag = gtragSystem()
+new_rag.load_graph("./my_gtrag_project/")
 
 # Continue querying with loaded data
 result = new_rag.query("Previous analysis question")
 
 # Directory structure created:
-# my_timerag_project/
+# my_gtrag_project/
 # ├── graph.json              # NetworkX knowledge graph
 # ├── chunks.json             # Original text chunks  
 # ├── vectors.faiss           # Vector index (if enabled)
@@ -315,7 +315,7 @@ print(f"📝 Stored chunks: {stats['stored_chunks']}")
 ### ⚙️ **Configuration Options**
 
 ```python
-from timerag import TimeRAGSystem, QueryParams, ChunkingConfig
+from gtrag import gtragSystem, QueryParams, ChunkingConfig
 
 # Custom chunking configuration
 chunk_config = Config(
@@ -332,7 +332,7 @@ query_params = QueryParams(
 )
 
 # Initialize with custom configurations
-rag = TimeRAGSystem(
+rag = gtragSystem(
     chunking_config=chunk_config,
     query_params=query_params
 )
@@ -402,8 +402,8 @@ The demos will show you:
 ## 📁 Project Structure
 
 ```
-TimeRAG/
-├── timerag/                    # Main package
+gtrag/
+├── gtrag/                    # Main package
 │   ├── core/                  # System orchestrator  
 │   ├── config/               # Configuration management
 │   ├── extractors/           # LLM-based extraction

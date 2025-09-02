@@ -1,5 +1,5 @@
 """
-Optimized TimeRAG Flow Demo
+Optimized gtrag Flow Demo
 
 This demo showcases the enhanced RAG flow with:
 1. Time-aware retrieval architecture
@@ -12,15 +12,15 @@ import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from timerag.core.system import TimeRAGSystem
-from timerag.config.settings import QueryParams
+from gtrag.core.system import gtragSystem
+from gtrag.config.settings import QueryParams
 
 
 def main():
-    print("=== Optimized TimeRAG Flow Demo ===\n")
+    print("=== Optimized gtrag Flow Demo ===\n")
     
-    # Initialize TimeRAG system
-    rag = TimeRAGSystem()
+    # Initialize gtrag system
+    rag = gtragSystem()
     
     # Sample temporal documents with more complex data
     sample_documents = [

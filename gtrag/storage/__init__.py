@@ -1,4 +1,4 @@
-"""TimeRAG storage modules for vector databases and persistence."""
+"""gtrag storage modules for vector databases and persistence."""
 
 from .vector_store import VectorStore, FAISSVectorStore
 from .graph_persistence import GraphPersistence

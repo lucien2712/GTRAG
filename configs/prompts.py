@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-TimeRAG system prompt templates based on LightRAG approach.
+gtrag system prompt templates based on LightRAG approach.
 This file contains essential prompts for entity/relation extraction and RAG response generation.
 """
 
@@ -13,7 +13,7 @@ DEFAULT_RECORD_DELIMITER = "##"
 DEFAULT_COMPLETION_DELIMITER = "<|COMPLETE|>"
 
 def get_all_configs():
-    """Returns all prompt configurations for TimeRAG system."""
+    """Returns all prompt configurations for gtrag system."""
     return {
         "entity_extraction": ENTITY_EXTRACTION_PROMPT,
         "query_understanding": KEYWORDS_EXTRACTION_PROMPT,
