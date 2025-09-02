@@ -189,14 +189,20 @@ for relation in relations[:3]:  # Show top 3
 
 ```python
 # Save knowledge graph for later use
-rag.save_graph("my_analysis.pkl")
+rag.save_graph("my_analysis.json")
 
 # Load in a new session  
 new_rag = TimeRAGSystem()
-new_rag.load_graph("my_analysis.pkl")
+new_rag.load_graph("my_analysis.json")
 
 # Continue querying with loaded data
 result = new_rag.query("Previous analysis question")
+
+# Files created:
+# - my_analysis.json          (NetworkX graph with entities/relations)
+# - my_analysis.chunks.json   (Original text chunks for context)
+# - my_analysis_vectors.faiss (Vector store for fast similarity search)  
+# - my_analysis_vectors.metadata.npy (Vector metadata)
 ```
 
 ### 📈 **System Statistics**

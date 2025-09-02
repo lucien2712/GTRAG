@@ -220,8 +220,63 @@ def main():
             traceback.print_exc()
     
     print("\n" + "=" * 60)
+    print("💾 Demonstrating Persistence & Reloading")
+    print("=" * 60)
+    
+    # Save the knowledge graph
+    save_path = "demo_timerag_graph.json"
+    print(f"\n8. 💾 Saving knowledge graph to '{save_path}'...")
+    try:
+        rag.save_graph(save_path)
+        print(f"   ✅ Knowledge graph saved successfully!")
+        print(f"   📁 Files created:")
+        print(f"      - {save_path} (Main graph with entities/relations)")
+        print(f"      - demo_timerag_graph.chunks.json (Original text chunks)")
+        if hasattr(rag.graph_builder, 'vector_store') and rag.graph_builder.vector_store:
+            print(f"      - demo_timerag_graph_vectors.faiss (Vector index)")
+            print(f"      - demo_timerag_graph_vectors.metadata.npy (Vector metadata)")
+    except Exception as e:
+        print(f"   ❌ Failed to save graph: {e}")
+    
+    # Demonstrate loading in a new session
+    print(f"\n9. 📂 Loading knowledge graph from saved files...")
+    try:
+        # Create a new RAG system instance (simulating new session)
+        new_rag = TimeRAGSystem(
+            llm_func=gpt_4o_mini_llm,
+            embedding_func=openai_embedding_func
+        )
+        new_rag.load_graph(save_path)
+        print(f"   ✅ Knowledge graph loaded successfully!")
+        
+        # Get statistics from loaded system
+        loaded_stats = new_rag.get_stats()
+        print(f"   📊 Loaded system statistics:")
+        print(f"      - Documents: {loaded_stats.get('indexed_documents', 0)}")
+        print(f"      - Nodes: {loaded_stats.get('num_nodes', 0)}")  
+        print(f"      - Edges: {loaded_stats.get('num_edges', 0)}")
+        print(f"      - Chunks: {loaded_stats.get('stored_chunks', 0)}")
+        
+        # Test query on loaded system
+        print(f"\n   🔍 Testing query on loaded system...")
+        test_result = new_rag.query("What did Apple achieve in 2024?", 
+                                   query_params=QueryParams(top_k=5, similarity_threshold=0.3))
+        print(f"      ✅ Query successful! Answer length: {len(test_result.get('answer', ''))}")
+        print(f"      📊 Retrieved: {len(test_result.get('retrieved_entities', []))} entities, "
+              f"{len(test_result.get('retrieved_relations', []))} relations")
+        
+    except Exception as e:
+        print(f"   ❌ Failed to load/test graph: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    print("\n" + "=" * 60)
     print("🎉 Demo Completed Successfully!")
     print("=" * 60)
+    print(f"\n💡 You can now use the saved files:")
+    print(f"   - To continue in another session: new_rag.load_graph('{save_path}')")
+    print(f"   - The graph persists entities, relations, chunks, and vectors")
+    print(f"   - Perfect for production applications requiring data persistence")
     
     # Show final system statistics
     try:
