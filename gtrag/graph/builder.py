@@ -410,7 +410,7 @@ class GraphBuilder:
         Build temporal evolution connections between entities across different time periods.
         Uses flexible time handling to support various time formats.
         """
-        from ..utils.time_handler import TimeHandler, TimeGranularity
+        from ..utils.time_handler import TimeHandler
         
         logger.info("Building temporal connections using flexible TimeHandler...")
         

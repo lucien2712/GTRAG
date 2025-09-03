@@ -105,27 +105,27 @@ def main():
         {
             "text": "Apple Inc. reported iPhone sales of 80 million units in Q4 2023, showing strong demand for the latest models.", 
             "doc_id": "apple_q4_2023", 
-            "metadata": {"date": "2023Q4"}  # Quarter format
+            "metadata": {"date": "2023-12"}  # December 2023 (Q4)
         },
         {
             "text": "Apple launched the iPhone 15 on September 15, 2023, featuring titanium design and enhanced camera capabilities.", 
             "doc_id": "apple_launch_sep_2023", 
-            "metadata": {"date": "2023-09-15"}  # ISO date format
+            "metadata": {"date": "2023-09"}  # September 2023
         },
         {
             "text": "Microsoft's cloud business revenue grew significantly by 30% in March 2024, driven by Azure services and enterprise adoption.", 
             "doc_id": "ms_march_2024", 
-            "metadata": {"date": "2024-03"}  # Year-month format
+            "metadata": {"date": "2024-03"}  # March 2024
         },
         {
             "text": "Google's annual developer conference in 2024 showcased major AI advances and new cloud computing capabilities.",
             "doc_id": "google_annual_2024",
-            "metadata": {"date": "2024"}  # Year only format
+            "metadata": {"date": "2024-05"}  # May 2024 (typical conference month)
         },
         {
             "text": "During Phase-Alpha of the Mars mission project, SpaceX successfully tested the new Raptor engine design for improved efficiency.",
             "doc_id": "spacex_phase_alpha",
-            "metadata": {"date": "Phase-Alpha"}  # Custom label format
+            "metadata": {"date": "2024-06"}  # June 2024 (assigning a month for this project)
         }
     ]
     
@@ -170,7 +170,7 @@ def main():
         
         # Define query parameters
         custom_query_params = QueryParams(
-            time_range=["2024Q1"],
+            time_range=["2024-03"],  # March 2024
             enable_time_filtering=True,
             top_k=8,
             similarity_threshold=0.2,

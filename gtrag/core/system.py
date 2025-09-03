@@ -112,8 +112,8 @@ class gtragSystem:
         if time_point:
             # Add standardized timestamp while keeping original fields for backward compatibility
             metadata['_standardized_time'] = time_point.value
-            metadata['_time_granularity'] = time_point.granularity.value
-            logger.info(f"Standardized time for {doc_id}: {time_point.value} ({time_point.granularity.value})")
+            metadata['_time_granularity'] = 'YYYY-MM'  # All times are now YYYY-MM format
+            logger.info(f"Standardized time for {doc_id}: {time_point.value} (YYYY-MM format)")
 
         # 1. Document chunking
         chunks = self.chunker.chunk(doc_id, text, metadata)

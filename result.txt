@@ -1,0 +1,59 @@
+(timerag) C:\GTRAG\examples>python demo_gemini.py
+============================================================
+gtrag API Usage Demo
+============================================================
+1. 🚀 Initializing gtrag System...
+2025-09-03 17:11:58,622 - INFO - Initialized FAISS vector store: dimension=768, metric=cosine, type=flat
+2025-09-03 17:11:58,622 - INFO - Initialized FAISS vector store
+2025-09-03 17:11:58,869 - INFO - gtrag system initialized successfully.
+   ✅ System initialization completed successfully
+
+2. 📄 Indexing documents with temporal metadata...
+2025-09-03 17:11:58,870 - INFO - Starting document insertion: apple_q4_2023
+   ❌ Failed to index apple_q4_2023: 'TimePoint' object has no attribute 'granularity'
+2025-09-03 17:11:58,871 - INFO - Starting document insertion: apple_launch_sep_2023
+   ❌ Failed to index apple_launch_sep_2023: 'TimePoint' object has no attribute 'granularity'
+2025-09-03 17:11:58,871 - INFO - Starting document insertion: ms_march_2024
+   ❌ Failed to index ms_march_2024: 'TimePoint' object has no attribute 'granularity'
+2025-09-03 17:11:58,871 - INFO - Starting document insertion: google_annual_2024
+   ❌ Failed to index google_annual_2024: 'TimePoint' object has no attribute 'granularity'
+2025-09-03 17:11:58,872 - INFO - Starting document insertion: spacex_phase_alpha
+   ❌ Failed to index spacex_phase_alpha: 'TimePoint' object has no attribute 'granularity'
+
+3. 🔗 Building temporal connections...
+2025-09-03 17:11:58,872 - INFO - Building temporal connections...
+   ❌ Failed to build temporal connections: cannot import name 'TimeGranularity' from 'gtrag.utils.time_handler' (C:\GTRAG\gtrag\utils\time_handler.py)
+
+============================================================
+Batch Processing Demo
+============================================================
+📁 Batch processing allows you to process multiple documents at once.
+   Example usage:
+
+    from gtrag.processing import BatchProcessor, BatchProcessingConfig
+
+    # Configure batch processing
+    config = BatchProcessingConfig(
+        max_workers=4,
+        batch_size=10,
+        supported_formats=['.pdf', '.docx', '.txt', '.json']
+    )
+
+    # Initialize batch processor
+    batch_processor = BatchProcessor(rag_system, config)
+
+    # Process all documents in a directory
+    results = batch_processor.process_directory("./documents/")
+
+    # Process specific files
+    file_list = ["doc1.pdf", "doc2.docx", "doc3.txt"]
+    results = batch_processor.process_files(file_list)
+
+
+   📝 This would process multiple files concurrently with:
+      • Automatic file format detection
+      • Flexible time extraction from filenames/content (quarters, dates, years, custom labels)
+      • Progress tracking and error handling
+      • Parallel processing for better performance
+
+(timerag) C:\GTRAG\examples>

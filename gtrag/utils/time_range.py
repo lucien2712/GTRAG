@@ -8,7 +8,7 @@ supporting flexible time formats through the TimeHandler class.
 import re
 from typing import List, Optional, Set, Tuple
 from datetime import datetime
-from .time_handler import TimeHandler, TimePoint, TimeGranularity
+from .time_handler import TimeHandler, TimePoint
 
 
 class TimeRangeParser:
