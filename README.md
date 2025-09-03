@@ -378,19 +378,11 @@ metadata = {"date": "2024-06"}       # June 2024
 cd examples
 
 # Basic functionality demo
-python demo.py
-
-# Flexible time formats demo
-python flexible_time_demo.py
+python demo_openai,py
 ```
 
 The demos will show you:
-- **demo.py**: Basic functionality with standardized YYYY-MM `date` field
-- **flexible_time_demo.py**: Advanced features including:
-  - YYYY-MM time format standardization
-  - time_range query filtering with QueryParams
-  - Temporal expansion modes comparison
-  - Multi-month time range queries
+- **demo_openai,py**: Basic functionality with standardized YYYY-MM `date` field
 - System initialization and document indexing
 - Temporal connection building with standardized YYYY-MM format
 - Multiple query examples with time_range filtering
@@ -411,7 +403,8 @@ gtrag/
 │   ├── entity_types.json   # Entity type definitions
 │   └── prompts.py          # LLM prompt templates
 └── examples/               # Usage examples
-    └── demo.py            # Complete demonstration
+    ├── demo_openai,py            # Complete demonstration
+    └── demo_gemini,py 
 ```
 
 ## 🤝 Contributing
