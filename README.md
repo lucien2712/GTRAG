@@ -410,7 +410,3 @@ gtrag/
 ## 🤝 Contributing
 
 This is a research project focused on temporal-aware RAG systems. The core functionality is complete and ready for research and prototyping use cases.
-
-## 📄 License
-
-This project is available for research and educational purposes.
