@@ -23,7 +23,7 @@ class ModelConfig:
     TEMPERATURE: float = 0.1
 
     # Semantic embedding model settings  
-    EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
+    EMBEDDING_MODEL: str = "BAAI/bge-m3"
 
     # Retrieval algorithm settings
     DEFAULT_TOP_K: int = 10  # Default number of retrieved nodes
