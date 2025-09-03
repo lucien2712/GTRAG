@@ -64,8 +64,9 @@ def gemini_llm(system_prompt: str, user_prompt: str) -> str:
         print(f"Error calling Gemini: {e}")
         return "{}"
 
-def gemini_embedding_func(text: str) -> list:
+def gemini_embedding_func(text: str):
     """Custom embedding function using Google Gemini embedding model."""
+    import numpy as np
     try:
         # 建議使用較新的 text-embedding-004
         resp = genai.embed_content(
@@ -74,10 +75,13 @@ def gemini_embedding_func(text: str) -> list:
         )
         # SDK 會回傳 {'embedding': [...]}
         emb = resp.get("embedding") if isinstance(resp, dict) else None
-        return emb or []
+        if emb:
+            # Convert list to numpy array for compatibility
+            return np.array(emb, dtype=np.float32)
+        return np.array([], dtype=np.float32)
     except Exception as e:
         print(f"Error generating embedding: {e}")
-        return []
+        return np.array([], dtype=np.float32)
     
 def main():
     """Main execution function"""
