@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(find:*)",
+      "Bash(del /s /q *.pyc)"
     ],
     "deny": [],
     "ask": []

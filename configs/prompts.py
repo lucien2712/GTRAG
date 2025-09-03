@@ -15,9 +15,18 @@ DEFAULT_COMPLETION_DELIMITER = "<|COMPLETE|>"
 def get_all_configs():
     """Returns all prompt configurations for gtrag system."""
     return {
-        "entity_extraction": ENTITY_EXTRACTION_PROMPT,
-        "query_understanding": KEYWORDS_EXTRACTION_PROMPT,
-        "rag_response": RAG_RESPONSE_PROMPT
+        "entity_extraction": {
+            "system_prompt": "You are an expert entity and relationship extractor.",
+            "template": ENTITY_EXTRACTION_PROMPT
+        },
+        "query_understanding": {
+            "system_prompt": "You are a query analysis expert and keyword extractor for a RAG system.",
+            "template": KEYWORDS_EXTRACTION_PROMPT
+        },
+        "rag_response": {
+            "system_prompt": "You are a helpful assistant that provides accurate answers based on knowledge graph data.",
+            "template": RAG_RESPONSE_PROMPT
+        }
     }
 
 # Entity and Relationship Extraction Prompt (based on LightRAG)

@@ -129,6 +129,12 @@ class FAISSVectorStore(VectorStore):
     def search(self, query_vector: np.ndarray, top_k: int = 10, 
                filter_metadata: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """Search for similar vectors in the FAISS index."""
+        # Convert list to numpy array if needed
+        if isinstance(query_vector, list):
+            query_vector = np.array(query_vector, dtype=np.float32)
+        elif not isinstance(query_vector, np.ndarray):
+            query_vector = np.array(query_vector, dtype=np.float32)
+        
         if query_vector.shape[0] != self.dimension:
             raise ValueError(f"Query vector dimension {query_vector.shape[0]} doesn't match store dimension {self.dimension}")
         
@@ -137,8 +143,13 @@ class FAISSVectorStore(VectorStore):
         if self.metric == "cosine":
             faiss.normalize_L2(query_vector)
         
+        # Check if we have any vectors to search
+        if len(self.ids) == 0:
+            return []
+            
         # Search in FAISS
-        distances, indices = self.index.search(query_vector, min(top_k * 2, len(self.ids)))  # Get more results for filtering
+        search_k = max(1, min(top_k * 2, len(self.ids)))  # Ensure k > 0
+        distances, indices = self.index.search(query_vector, search_k)
         
         results = []
         for dist, idx in zip(distances[0], indices[0]):
@@ -283,6 +294,12 @@ class InMemoryVectorStore(VectorStore):
         """Search using cosine similarity or L2 distance."""
         if len(self.vectors) == 0:
             return []
+        
+        # Convert list to numpy array if needed
+        if isinstance(query_vector, list):
+            query_vector = np.array(query_vector, dtype=np.float32)
+        elif not isinstance(query_vector, np.ndarray):
+            query_vector = np.array(query_vector, dtype=np.float32)
         
         query_vector = query_vector.reshape(1, -1).astype(np.float32)
         

@@ -11,3 +11,4 @@ scikit-learn
 faiss-cpu
 dataclasses-json
 networkx
+google-generativeai

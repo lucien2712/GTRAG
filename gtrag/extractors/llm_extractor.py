@@ -26,6 +26,19 @@ from ..config.settings import ModelConfig
 from ..config.prompts import PromptConfig
 from ..config.entity_types import EntityTypes
 
+# Import prompt constants for fallback
+try:
+    import sys
+    from pathlib import Path
+    config_path = Path(__file__).parent.parent.parent / "configs" / "prompts.py"
+    if config_path.exists():
+        sys.path.insert(0, str(config_path.parent))
+        from prompts import KEYWORDS_EXTRACTION_PROMPT
+    else:
+        KEYWORDS_EXTRACTION_PROMPT = "Extract keywords from: {query}"
+except ImportError:
+    KEYWORDS_EXTRACTION_PROMPT = "Extract keywords from: {query}"
+
 logger = logging.getLogger(__name__)
 
 # --- Data Structure Definitions ---
@@ -106,7 +119,7 @@ class PromptTemplates:
         """Get query understanding system and user prompts."""
         config = self.prompt_config.get_query_understanding_prompt()
         system_prompt = config.get("system_prompt", "")
-        template = config.get("template", "")
+        template = config.get("template", KEYWORDS_EXTRACTION_PROMPT)
         user_prompt = template.format(query=query)
         return {"system": system_prompt, "user": user_prompt}
 
@@ -189,8 +202,16 @@ class LLMExtractor:
         
         try:
             response_text = self.llm_call(prompts["system"], prompts["user"])
+            
+            # Debug logging to see what Gemini actually returns
+            logger.info(f"LLM response for {doc_id} (first 500 chars): {response_text[:500]}")
+            
             # Parse LLM response in the format "('entity'<|>...)" 
             entities, relations = self._parse_extraction_output(response_text, text, doc_id, metadata or {})
+            
+            if not entities and not relations:
+                logger.warning(f"No entities/relations extracted from {doc_id}. Response format may be incorrect.")
+            
             return entities, relations
         except Exception as e:
             logger.error(f"Error extracting information from document ID '{doc_id}': {e}")
@@ -230,19 +251,68 @@ class LLMExtractor:
         entities = []
         relations = []
         
+        # Handle potential JSON responses from Gemini
+        if response_text.strip().startswith('{') and response_text.strip().endswith('}'):
+            try:
+                import json
+                json_response = json.loads(response_text)
+                logger.info(f"Received JSON response from LLM with {len(json_response.get('entities', []))} entities, {len(json_response.get('relationships', []))} relations")
+                
+                # Parse JSON format entities
+                json_entities = json_response.get('entities', [])
+                for entity_data in json_entities:
+                    entity = Entity(
+                        name=entity_data.get('entity_name', ''),
+                        type=entity_data.get('entity_type', 'Other'),
+                        description=entity_data.get('entity_description', ''),
+                        source_doc_id=doc_id,
+                        metadata={**metadata, 'chunk_id': metadata.get('chunk_id')}
+                    )
+                    entities.append(entity)
+                
+                # Parse JSON format relationships  
+                json_relations = json_response.get('relationships', [])
+                for relation_data in json_relations:
+                    relation = Relation(
+                        source=relation_data.get('source_entity', ''),
+                        target=relation_data.get('target_entity', ''),
+                        keywords=relation_data.get('relationship_keywords', 'related'),
+                        description=relation_data.get('relationship_description', ''),
+                        evidence=relation_data.get('relationship_description', ''),  # Use description as evidence
+                        source_doc_id=doc_id,
+                        metadata={**metadata, 'chunk_id': metadata.get('chunk_id')}
+                    )
+                    relations.append(relation)
+                
+                logger.info(f"Successfully parsed JSON format: {len(entities)} entities, {len(relations)} relations")
+                return entities, relations
+                
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse JSON response: {e}")
+                pass
+        
         # Split by record delimiter
         items = response_text.strip().split('##')
+        logger.info(f"Parsing {len(items)} items from response for {doc_id}")
         
-        for item in items:
+        for i, item in enumerate(items):
             item = item.strip()
-            if not item or not item.startswith('(') or not item.endswith(')'):
+            if not item:
+                continue
+                
+            # More flexible parsing - handle items that might not have exact parentheses
+            if item.startswith('(') and item.endswith(')'):
+                item_content = item[1:-1]
+            elif '<|>' in item:  # Still has delimiters, just missing parentheses
+                item_content = item
+            else:
+                logger.debug(f"Skipping malformed item {i}: {item[:100]}")
                 continue
             
-            # Remove outer parentheses
-            item_content = item[1:-1]
             parts = item_content.split('<|>')
             
             if len(parts) < 4:
+                logger.debug(f"Item {i} has insufficient parts ({len(parts)}): {parts}")
                 continue
                 
             item_type = parts[0].strip('"').strip("'")
