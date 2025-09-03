@@ -127,9 +127,9 @@ class ChunkingConfig:
     Defines how to split long documents into manageable pieces for model processing.
     """
     # Token limits
-    MAX_TOKENS_PER_CHUNK: int = 3000  # Maximum tokens per chunk
-    OVERLAP_TOKENS: int = 200  # Overlapping tokens between chunks
-    MIN_CHUNK_TOKENS: int = 500  # Minimum tokens per chunk
+    MAX_TOKENS_PER_CHUNK: int = 500  # Maximum tokens per chunk
+    OVERLAP_TOKENS: int = 50  # Overlapping tokens between chunks
+    MIN_CHUNK_TOKENS: int = 100  # Minimum tokens per chunk
 
     # Splitting preferences
     SENTENCE_BOUNDARY: bool = True  # Split on sentence boundaries
@@ -152,13 +152,13 @@ class RetrievalWeights:
     
     Used to balance the importance of different retrieval strategies.
     """
-    TEMPORAL: float = 0.6  # Temporal relevance weight
-    SEMANTIC: float = 0.4  # Semantic similarity weight
+    TEMPORAL: float = 0.2  # Temporal relevance weight
+    SEMANTIC: float = 0.8  # Semantic similarity weight
 
     # Node importance score weights
     DEGREE_WEIGHT: float = 0.3  # Node degree (connection count) weight
-    EDGE_WEIGHT: float = 0.4  # Edge weight
-    SEMANTIC_WEIGHT: float = 0.3  # Semantic weight
+    EDGE_WEIGHT: float = 0.3  # Edge weight
+    SEMANTIC_WEIGHT: float = 0.4  # Semantic weight
 
 
 @dataclass
@@ -167,7 +167,7 @@ class VectorDBConfig:
     Vector database configuration for embedding storage.
     """
     provider: str = "faiss"  # Vector DB provider (faiss, chroma, etc.)
-    dimension: int = 384  # Embedding dimension
+    dimension: int = 1024  # Embedding dimension
     index_type: str = "flat"  # Index type for vector search
     metric: str = "cosine"  # Distance metric
     

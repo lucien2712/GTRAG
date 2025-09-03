@@ -10,21 +10,21 @@ from gtrag import gtragSystem, QueryParams
 # 1. Initialize system
 rag = gtragSystem()
 
-# 2. Index documents with flexible temporal metadata
+# 2. Index documents with temporal metadata (YYYY-MM format)
 rag.insert(
     text="Apple reported iPhone sales of 80M units in Q4 2023.", 
     doc_id="apple_q4_2023", 
-    metadata={"date": "2023Q4"}  # Supports quarters
+    metadata={"date": "2023-12"}  # December 2023 (Q4)
 )
 rag.insert(
     text="Apple launched iPhone 15 on September 15, 2023.", 
     doc_id="apple_launch_2023", 
-    metadata={"date": "2023-09-15"}  # Supports ISO dates
+    metadata={"date": "2023-09"}  # September 2023
 )
 rag.insert(
     text="Microsoft Azure grew 28% in March 2024.", 
     doc_id="msft_march_2024", 
-    metadata={"date": "2024-03"}  # Supports year-month
+    metadata={"date": "2024-03"}  # March 2024
 )
 
 # 3. Build temporal connections
@@ -37,7 +37,7 @@ print(result["answer"])
 # 5. Query with specific time range filtering
 
 params = QueryParams(
-    time_range=["2023Q4", "2024Q1"],  # Focus on specific periods
+    time_range=["2023-12", "2024-03"],  # Focus on specific periods
     enable_time_filtering=True
 )
 result = rag.query("Compare Apple and Microsoft performance", query_params=params)
@@ -46,12 +46,12 @@ print(result["answer"])
 
 ## ✨ Core Features
 
-- **🕒 Universal Time Support**: Single `date` field accepts quarters, ISO dates, months, years, and custom labels
+- **🕒 Standardized Time Format**: Single `date` field uses YYYY-MM format (e.g., 2024-01, 2024-12)
 - **🧠 Knowledge Graph**: Converts text into structured, queryable knowledge graphs  
 - **🎯 Smart Retrieval**: Multi-hop graph traversal with semantic and temporal similarity
 - **⚙️ Highly Customizable**: Configurable entity types, prompts, and models
 - **🔌 Custom Model Support**: Easy integration with any LLM or embedding model
-- **🎯 Simplified API**: Single `date` field for all time formats
+- **🎯 Simplified API**: Single `date` field with consistent YYYY-MM format
 
 ## System Architecture
 
@@ -120,22 +120,22 @@ gtrag creates a single knowledge graph where every entity and relationship inclu
 ```
 ┌─────────────────── UNIFIED KNOWLEDGE GRAPH ──────────────────────┐
 │                                                                   │
-│  Apple[2023Q4] ◄──produces──► iPhone[2023Q4]                     │
+│  Apple[2023-12] ◄──produces──► iPhone[2023-12]                   │
 │        │                          │                              │
 │        │ temporal_evolution        │ temporal_evolution           │
 │        ▼                          ▼                              │
-│  Apple[2024Q1] ◄──produces──► iPhone[2024Q1]                     │
+│  Apple[2024-03] ◄──produces──► iPhone[2024-03]                   │
 │        │                          │                              │
 │        │ temporal_evolution        │ temporal_evolution           │
 │        ▼                          ▼                              │
-│  Apple[2024Q2] ◄──produces──► iPhone[2024Q2]                     │
+│  Apple[2024-06] ◄──produces──► iPhone[2024-06]                   │
 │                                                                   │
 │                                                                   │
-│  Microsoft[2023Q4] ◄──develops──► Azure[2023Q4]                  │
+│  Microsoft[2023-12] ◄──develops──► Azure[2023-12]                │
 │           │                           │                          │
 │           │ temporal_evolution         │ temporal_evolution        │
 │           ▼                           ▼                          │
-│  Microsoft[2024Q1] ◄──develops──► Azure[2024Q1]                  │
+│  Microsoft[2024-03] ◄──develops──► Azure[2024-03]                │
 └───────────────────────────────────────────────────────────────────┘
 
 Key Features:
@@ -189,9 +189,9 @@ rag = gtragSystem(
 
 # Index multiple documents efficiently
 documents = [
-    {"text": "...", "doc_id": "doc1", "metadata": {"date": "2023Q4"}},
-    {"text": "...", "doc_id": "doc2", "metadata": {"date": "2024Q1"}},
-    {"text": "...", "doc_id": "doc3", "metadata": {"date": "2024Q2"}},
+    {"text": "...", "doc_id": "doc1", "metadata": {"date": "2023-12"}},
+    {"text": "...", "doc_id": "doc2", "metadata": {"date": "2024-03"}},
+    {"text": "...", "doc_id": "doc3", "metadata": {"date": "2024-06"}},
 ]
 
 for doc in documents:
@@ -205,7 +205,7 @@ custom_params = QueryParams(
     similarity_threshold=0.2,    # Lower threshold = more results
     max_hops=3,                  # Maximum graph traversal hops
     final_max_tokens=8000,       # Context size limit
-    time_range=["2024Q1", "2024Q2"],  # Specific time period
+    time_range=["2024-03", "2024-06"],  # Specific time period
     enable_time_filtering=True   # Enable time-aware filtering
 )
 
@@ -220,24 +220,24 @@ result = rag.query(
 ```python
 from gtrag.config.settings import QueryParams
 
-# Example 1: Quarter-based filtering
-params = QueryParams(time_range=["2023Q4"], enable_time_filtering=True)
-result = rag.query("What happened in Q4 2023?", query_params=params)
+# Example 1: Single month filtering
+params = QueryParams(time_range=["2023-12"], enable_time_filtering=True)
+result = rag.query("What happened in December 2023?", query_params=params)
 
-# Example 2: Mixed time formats
+# Example 2: Multiple months
 params = QueryParams(
-    time_range=["2023Q4", "2024-01", "March 2024"], 
+    time_range=["2023-12", "2024-01", "2024-03"], 
     enable_time_filtering=True
 )
 result = rag.query("Show trends across different periods", query_params=params)
 
-# Example 4: Temporal expansion modes
+# Example 3: Temporal expansion modes
 params = QueryParams(
-    time_range=["2024Q1"],
+    time_range=["2024-03"],
     enable_time_filtering=True,
     temporal_expansion_mode="expanded"  # Include adjacent periods
 )
-result = rag.query("Q1 2024 performance with context", query_params=params)
+result = rag.query("March 2024 performance with context", query_params=params)
 ```
 
 ### 📊 **Method 3: Complete Result Analysis**
@@ -341,10 +341,10 @@ rag = gtragSystem(
 
 ### 1. **Temporal Metadata is Essential**
 ```python
-# ✅ Correct: Include time information in 'date' field (any supported format)
-rag.insert(text, doc_id, metadata={"date": "2024Q1"})          # Quarters
-rag.insert(text, doc_id, metadata={"date": "2024-03-15"})      # ISO dates
-rag.insert(text, doc_id, metadata={"date": "March 2024"})      # Month names
+# ✅ Correct: Include time information in 'date' field (YYYY-MM format)
+rag.insert(text, doc_id, metadata={"date": "2024-03"})        # March 2024
+rag.insert(text, doc_id, metadata={"date": "2023-12"})        # December 2023
+rag.insert(text, doc_id, metadata={"date": "2024-06"})        # June 2024
 
 # ❌ Incorrect: Missing temporal metadata
 rag.insert(text, doc_id)  # Won't work properly for temporal analysis
@@ -360,18 +360,16 @@ for doc in documents:
 rag.build_temporal_links()  # Don't forget this!
 ```
 
-### 3. **Supported Time Formats**
+### 3. **Standardized Time Format**
 ```python
-# ✅ All supported formats (unified 'date' field)
-metadata = {"date": "2024Q1"}        # Quarters
-metadata = {"date": "2024-03-15"}    # ISO dates
-metadata = {"date": "2024-03"}       # Year-month
-metadata = {"date": "2024"}          # Years only
-metadata = {"date": "March 2024"}    # Month names
-metadata = {"date": "Phase-Alpha"}   # Custom labels
+# ✅ Required YYYY-MM format (unified 'date' field)
+metadata = {"date": "2024-03"}       # March 2024
+metadata = {"date": "2023-12"}       # December 2023 
+metadata = {"date": "2024-01"}       # January 2024
+metadata = {"date": "2024-06"}       # June 2024
 
-# 📝 Unified field name: 'date'
-# Single field for all time formats - no need to remember multiple field names!
+# 📝 Standard format: YYYY-MM
+# Consistent time representation eliminates conversion complexity!
 ```
 
 ## 🎬 Run the Demos
@@ -387,14 +385,14 @@ python flexible_time_demo.py
 ```
 
 The demos will show you:
-- **demo.py**: Basic functionality with unified `date` field
+- **demo.py**: Basic functionality with standardized YYYY-MM `date` field
 - **flexible_time_demo.py**: Advanced features including:
-  - All time formats (quarters, ISO dates, months, years, custom labels)
+  - YYYY-MM time format standardization
   - time_range query filtering with QueryParams
   - Temporal expansion modes comparison
-  - Mixed time format queries
+  - Multi-month time range queries
 - System initialization and document indexing
-- Temporal connection building across different time formats
+- Temporal connection building with standardized YYYY-MM format
 - Multiple query examples with time_range filtering
 - Detailed result analysis
 

@@ -2,131 +2,43 @@
   "entity_types": {
     "COMPANY": {
       "name": "COMPANY",
-      "description_zh": "公司、企業、組織",
       "description_en": "Companies, enterprises, organizations",
-      "examples": ["Apple", "Microsoft", "Google", "Tesla"],
-      "extraction_hints": [
-        "公司名稱",
-        "企業組織",
-        "上市公司",
-        "私人企業",
-        "跨國公司"
-      ]
+      "examples": ["Apple", "Microsoft", "Google", "Tesla"]
     },
     "PERSON": {
       "name": "PERSON",
-      "description_zh": "人物、高管、分析師",
       "description_en": "People, executives, analysts",
-      "examples": ["Tim Cook", "Satya Nadella", "Elon Musk"],
-      "extraction_hints": [
-        "CEO",
-        "執行長",
-        "分析師",
-        "董事長",
-        "高級管理人員"
-      ]
+      "examples": ["Tim Cook", "Satya Nadella", "Elon Musk"]
     },
     "PRODUCT": {
       "name": "PRODUCT",
-      "description_zh": "產品、服務、品牌",
       "description_en": "Products, services, brands",
-      "examples": ["iPhone", "Surface", "Azure", "Tesla Model 3"],
-      "extraction_hints": [
-        "產品名稱",
-        "服務項目",
-        "品牌名稱",
-        "軟體產品",
-        "硬體設備"
-      ]
+      "examples": ["iPhone", "Surface", "Azure", "Tesla Model 3"]
     },
     "FINANCIAL_METRIC": {
       "name": "FINANCIAL_METRIC",
-      "description_zh": "財務指標、業績數據",
       "description_en": "Financial metrics, performance data",
-      "examples": ["Revenue Growth", "Profit Margin", "EPS", "ROI"],
-      "extraction_hints": [
-        "營收",
-        "利潤",
-        "毛利率",
-        "每股收益",
-        "投資回報率",
-        "現金流"
-      ]
+      "examples": ["Revenue Growth", "Profit Margin", "EPS", "ROI"]
     },
     "BUSINESS_CONCEPT": {
       "name": "BUSINESS_CONCEPT",
-      "description_zh": "商業概念、策略、模式",
       "description_en": "Business concepts, strategies, models",
-      "examples": ["Digital Transformation", "Cloud Computing", "AI Strategy"],
-      "extraction_hints": [
-        "商業模式",
-        "營運策略",
-        "數位轉型",
-        "創新概念",
-        "商業趨勢"
-      ]
+      "examples": ["Digital Transformation", "Cloud Computing", "AI Strategy"]
     },
     "MARKET": {
       "name": "MARKET",
-      "description_zh": "市場、行業、細分領域",
       "description_en": "Markets, industries, segments",
-      "examples": ["Smartphone Market", "Cloud Services", "Electric Vehicle Market"],
-      "extraction_hints": [
-        "市場領域",
-        "行業類別",
-        "細分市場",
-        "產業鏈",
-        "競爭領域"
-      ]
+      "examples": ["Smartphone Market", "Cloud Services", "Electric Vehicle Market"]
     },
     "TECHNOLOGY": {
       "name": "TECHNOLOGY",
-      "description_zh": "技術、平台、解決方案",
       "description_en": "Technologies, platforms, solutions",
-      "examples": ["Artificial Intelligence", "Machine Learning", "Blockchain"],
-      "extraction_hints": [
-        "技術平台",
-        "解決方案",
-        "創新技術",
-        "軟體技術",
-        "硬體技術"
-      ]
+      "examples": ["Artificial Intelligence", "Machine Learning", "Blockchain"]
     },
     "GEOGRAPHIC": {
       "name": "GEOGRAPHIC",
-      "description_zh": "地理區域、國家、市場地區",
       "description_en": "Geographic regions, countries, market areas",
-      "examples": ["China", "Europe", "North America", "Asia-Pacific"],
-      "extraction_hints": [
-        "國家名稱",
-        "地理區域",
-        "市場地區",
-        "城市名稱",
-        "經濟區域"
-      ]
+      "examples": ["China", "Europe", "North America", "Asia-Pacific"]
     }
-  },
-  "custom_types": {
-    "_comment": "用戶可以在這裡添加自定義實體類型",
-    "_example": {
-      "REGULATION": {
-        "name": "REGULATION",
-        "description_zh": "法規、政策、合規要求",
-        "description_en": "Regulations, policies, compliance requirements",
-        "examples": ["GDPR", "SOX", "Basel III"],
-        "extraction_hints": [
-          "法律法規",
-          "政策文件",
-          "合規要求",
-          "監管規定"
-        ]
-      }
-    }
-  },
-  "extraction_settings": {
-    "max_entities_per_document": 50,
-    "enable_fuzzy_matching": true,
-    "extract_abbreviations": true,
-    "language": "zh-TW"
   }
 }

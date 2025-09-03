@@ -68,11 +68,6 @@ class EntityTypes:
             for entity_type, details in self._entity_config.get("entity_types", {}).items()
         }
         
-    def get_extraction_hints(self, entity_type: str) -> List[str]:
-        """Get extraction hints for a specific entity type."""
-        entity_data = self._entity_config.get("entity_types", {}).get(entity_type, {})
-        return entity_data.get("extraction_hints", [])
-        
     def get_examples(self, entity_type: str) -> List[str]:
         """Get examples for a specific entity type."""
         entity_data = self._entity_config.get("entity_types", {}).get(entity_type, {})

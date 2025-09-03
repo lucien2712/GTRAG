@@ -283,13 +283,12 @@ class gtragSystem:
             context_parts.append("### Entities")
             for entity in entities:
                 name = entity.get('name', 'Unknown')
-                entity_type = entity.get('type', 'Unknown') 
                 description = entity.get('description', 'No description')
                 date = entity.get('date')
                 if date:
-                    context_parts.append(f"- **{name}** ({entity_type}) [{date}]: {description}")
+                    context_parts.append(f"- **{name}** [{date}]: {description}")
                 else:
-                    context_parts.append(f"- **{name}** ({entity_type}): {description}")
+                    context_parts.append(f"- **{name}**: {description}")
         
         if relations:
             context_parts.append("\n### Relations")
