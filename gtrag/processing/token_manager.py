@@ -165,12 +165,16 @@ class TokenManager:
             name = entity.get('name', 'Unknown')
             entity_type = entity.get('type', 'Unknown')
             description = entity.get('description', 'No description')
+            date = entity.get('date')
             
             # Truncate description if too long
             if self.count_tokens(description) > 200:
                 description = self._truncate_text(description, 200)
             
-            entity_line = f"- **{name}** ({entity_type}): {description}"
+            if date:
+                entity_line = f"- **{name}** ({entity_type}) [{date}]: {description}"
+            else:
+                entity_line = f"- **{name}** ({entity_type}): {description}"
             line_tokens = self.count_tokens(entity_line)
             
             if current_tokens + line_tokens > token_budget:
@@ -195,14 +199,18 @@ class TokenManager:
         for relation in sorted_relations:
             source = relation.get('source', 'Unknown')
             target = relation.get('target', 'Unknown')
-            relation_type = relation.get('type', 'related to')
+            relation_keywords = relation.get('type', 'related to')
             description = relation.get('description', 'No description')
+            date = relation.get('date')
             
             # Truncate description if too long
             if self.count_tokens(description) > 150:
                 description = self._truncate_text(description, 150)
             
-            relation_line = f"- **{source}** {relation_type} **{target}**: {description}"
+            if date:
+                relation_line = f"- **{source}** {relation_keywords} **{target}** [{date}]: {description}"
+            else:
+                relation_line = f"- **{source}** {relation_keywords} **{target}**: {description}"
             line_tokens = self.count_tokens(relation_line)
             
             if current_tokens + line_tokens > token_budget:
@@ -277,15 +285,30 @@ class TokenManager:
     
     def estimate_tokens_for_content(self, entities: List[Dict], relations: List[Dict], chunks: List[str]) -> Dict[str, int]:
         """Estimate token requirements for given content without truncation."""
-        entity_text = "\n".join([
-            f"- **{e.get('name', 'Unknown')}** ({e.get('type', 'Unknown')}): {e.get('description', 'No description')}"
-            for e in entities
-        ])
+        entity_lines = []
+        for e in entities:
+            name = e.get('name', 'Unknown')
+            entity_type = e.get('type', 'Unknown')
+            description = e.get('description', 'No description')
+            date = e.get('date')
+            if date:
+                entity_lines.append(f"- **{name}** ({entity_type}) [{date}]: {description}")
+            else:
+                entity_lines.append(f"- **{name}** ({entity_type}): {description}")
+        entity_text = "\n".join(entity_lines)
         
-        relation_text = "\n".join([
-            f"- **{r.get('source', 'Unknown')}** {r.get('type', 'related to')} **{r.get('target', 'Unknown')}**: {r.get('description', 'No description')}"
-            for r in relations
-        ])
+        relation_lines = []
+        for r in relations:
+            source = r.get('source', 'Unknown')
+            target = r.get('target', 'Unknown')
+            relation_keywords = r.get('type', 'related to')
+            description = r.get('description', 'No description')
+            date = r.get('date')
+            if date:
+                relation_lines.append(f"- **{source}** {relation_keywords} **{target}** [{date}]: {description}")
+            else:
+                relation_lines.append(f"- **{source}** {relation_keywords} **{target}**: {description}")
+        relation_text = "\n".join(relation_lines)
         
         chunk_text = "\n\n".join([f"**Chunk {i+1}:** {chunk}" for i, chunk in enumerate(chunks)])
         

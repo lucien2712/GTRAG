@@ -89,7 +89,7 @@ class PromptTemplates:
 
     def get_extraction_prompt(self, text: str) -> Dict[str, str]:
         """Get entity and relation extraction system and user prompts."""
-        config = self.prompt_config.get_entity_extraction_prompt()
+        config = self.prompt_config.get_extraction_prompt()
         system_prompt = config.get("system_prompt", "")
         
         # Get entity types for prompt

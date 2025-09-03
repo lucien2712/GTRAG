@@ -38,7 +38,7 @@ class DocumentInfo:
     """Document information class"""
     file_path: str
     doc_id: str
-    quarter: str
+    date: str
     content: str
     file_size: int
     file_format: str
@@ -54,7 +54,7 @@ class DocumentInfo:
         return {
             'file_path': self.file_path,
             'doc_id': self.doc_id,
-            'quarter': self.quarter,
+            'date': self.date,
             'file_size': self.file_size,
             'file_format': self.file_format,
             'metadata': self.metadata,
@@ -76,7 +76,7 @@ class BatchProcessingConfig:
     skip_on_error: bool = True
     save_progress: bool = True
     progress_file: str = "batch_progress.json"
-    quarter_extraction_pattern: str = r'(20\d{2}Q[1-4]|Q[1-4]\s*20\d{2})'
+    time_extraction_pattern: str = r'(20\d{2}Q[1-4]|Q[1-4]\s*20\d{2}|20\d{2}-\d{2}-\d{2}|20\d{2}-\d{2}|20\d{2}|(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+20\d{2})'
 
 
 class FileParser:
@@ -198,39 +198,54 @@ class FileParser:
         raise ImportError("Either python-docx or textract required for DOCX parsing")
 
 
-class QuarterExtractor:
-    """Extract quarter information from file names and content"""
+class TimeExtractor:
+    """Extract time information from file names and content
     
-    def __init__(self, pattern: str = r'(20\d{2}Q[1-4]|Q[1-4]\s*20\d{2})'):
+    Supports multiple time formats:
+    - Quarters: 2024Q1, Q1 2024
+    - ISO dates: 2024-03-15, 2024-03
+    - Years: 2024
+    - Month names: March 2024, Mar 2024
+    """
+    
+    def __init__(self, pattern: str = r'(20\d{2}Q[1-4]|Q[1-4]\s*20\d{2}|20\d{2}-\d{2}-\d{2}|20\d{2}-\d{2}|20\d{2}|(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+20\d{2})'):
         self.pattern = re.compile(pattern, re.IGNORECASE)
     
-    def extract_quarter(self, file_path: str, content: str = "") -> Optional[str]:
-        """Extract quarter from file path or content"""
+    def extract_time(self, file_path: str, content: str = "") -> Optional[str]:
+        """Extract time information from file path or content
+        
+        Args:
+            file_path: Path to the file
+            content: File content to search
+            
+        Returns:
+            Extracted time string in standardized format, or None if not found
+        """
         # First try file path
-        path_quarter = self._extract_from_text(str(file_path))
-        if path_quarter:
-            return path_quarter
+        path_time = self._extract_from_text(str(file_path))
+        if path_time:
+            return path_time
         
         # Then try content (first 1000 characters)
         if content:
-            content_quarter = self._extract_from_text(content[:1000])
-            if content_quarter:
-                return content_quarter
+            content_time = self._extract_from_text(content[:1000])
+            if content_time:
+                return content_time
         
         return None
     
     def _extract_from_text(self, text: str) -> Optional[str]:
-        """Extract quarter from text using regex"""
+        """Extract time from text using regex"""
         matches = self.pattern.findall(text)
         if matches:
-            quarter = matches[0].strip()
-            # Normalize format to YYYYQX
-            if quarter.startswith('Q'):
+            time_str = matches[0].strip()
+            # Normalize format
+            if time_str.startswith('Q'):
                 # Q1 2023 -> 2023Q1
-                parts = quarter.split()
+                parts = time_str.split()
                 if len(parts) == 2:
-                    quarter = f"{parts[1]}{parts[0]}"
-            return quarter.replace(' ', '')
+                    time_str = f"{parts[1]}{parts[0]}"
+            return time_str.replace(' ', '')
         return None
 
 
@@ -248,7 +263,7 @@ class BatchProcessor:
         self.gtrag_system = gtrag_system
         self.config = config or BatchProcessingConfig()
         self.file_parser = FileParser()
-        self.quarter_extractor = QuarterExtractor(self.config.quarter_extraction_pattern)
+        self.time_extractor = TimeExtractor(self.config.time_extraction_pattern)
         
         self.processed_documents: List[DocumentInfo] = []
         self.failed_documents: List[DocumentInfo] = []
@@ -399,14 +414,14 @@ class BatchProcessor:
             parsed_data = self.file_parser.parse_file(str(file_path))
             content = parsed_data['content']
             
-            # Extract quarter information
-            quarter = self.quarter_extractor.extract_quarter(str(file_path), content)
-            if not quarter:
-                quarter = "UNKNOWN"
+            # Extract time information
+            date = self.time_extractor.extract_time(str(file_path), content)
+            if not date:
+                date = "UNKNOWN"
             
             # Prepare metadata
             metadata = {
-                'quarter': quarter,
+                'date': date,
                 'file_path': str(file_path),
                 **parsed_data['metadata']
             }
@@ -422,7 +437,7 @@ class BatchProcessor:
             return DocumentInfo(
                 file_path=str(file_path),
                 doc_id=doc_id,
-                quarter=quarter,
+                date=date,
                 content=content[:200] + "..." if len(content) > 200 else content,
                 file_size=parsed_data['file_size'],
                 file_format=parsed_data['file_format'],
@@ -443,7 +458,7 @@ class BatchProcessor:
             return DocumentInfo(
                 file_path=str(file_path),
                 doc_id=doc_id,
-                quarter="UNKNOWN",
+                date="UNKNOWN",
                 content="",
                 file_size=0,
                 file_format=file_path.suffix.lower(),
@@ -504,6 +519,6 @@ class BatchProcessor:
             'max_processing_time': max(processing_times),
             'total_file_size': sum(file_sizes),
             'avg_file_size': sum(file_sizes) / len(file_sizes),
-            'quarters_found': len(set(doc.quarter for doc in self.processed_documents)),
+            'times_found': len(set(doc.date for doc in self.processed_documents)),
             'file_formats': list(set(doc.file_format for doc in self.processed_documents))
         }

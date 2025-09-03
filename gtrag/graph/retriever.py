@@ -73,7 +73,7 @@ class GraphRetriever:
             keywords: Extracted keywords dictionary with high_level_keywords and low_level_keywords
             top_k: Maximum number of results to return
             similarity_threshold: Semantic similarity threshold
-            time_range: Time range specification (e.g., ["2024Q1", "2024Q2"])
+            time_range: Time range specification (flexible format, e.g., ["2024Q1", "2024-03"], ["March 2024", "2024"])
             enable_time_filtering: Whether to apply time filtering
             temporal_expansion_mode: How to expand time range (strict/with_temporal/expanded)
             temporal_evolution_scope: How to handle temporal evolution edges
@@ -96,24 +96,24 @@ class GraphRetriever:
         if self.graph_builder.vector_store:
             entities = self._search_with_vector_store_time_aware(
                 high_level_keys + low_level_keys, top_k, similarity_threshold,
-                valid_quarters, semantic_weight, temporal_weight
+                valid_times, semantic_weight, temporal_weight
             )
         else:
             # Fallback to traditional graph search
             entities = self._search_entities_traditional_time_aware(
                 low_level_keys, similarity_threshold, top_k,
-                valid_quarters, semantic_weight, temporal_weight
+                valid_times, semantic_weight, temporal_weight
             )
         
         # Search relationships with time awareness
         relations = self._search_relations_time_aware(
             high_level_keys, similarity_threshold, top_k,
-            valid_quarters, semantic_weight, temporal_weight
+            valid_times, semantic_weight, temporal_weight
         )
         
         # Auto-include source/target nodes from retrieved relations
         relation_connected_entities = self._extract_entities_from_relations(
-            relations, valid_quarters, semantic_weight, temporal_weight
+            relations, valid_times, semantic_weight, temporal_weight
         )
         
         # Merge with original entities (avoiding duplicates)
@@ -134,7 +134,7 @@ class GraphRetriever:
             time_range=time_range, enable_time_filtering=enable_time_filtering,
             temporal_expansion_mode=temporal_expansion_mode,
             temporal_evolution_scope=temporal_evolution_scope,
-            valid_quarters=valid_quarters,
+            valid_times=valid_times,
             semantic_weight=semantic_weight, temporal_weight=temporal_weight
         )
         
@@ -145,7 +145,7 @@ class GraphRetriever:
         return all_entities, all_relations
     
     def _search_with_vector_store_time_aware(self, keywords: List[str], top_k: int, threshold: float,
-                                           valid_quarters: Optional[set] = None,
+                                           valid_times: Optional[set] = None,
                                            semantic_weight: float = 0.6, 
                                            temporal_weight: float = 0.4) -> List[Dict[str, Any]]:
         """Search entities using vector store with time awareness and combined scoring."""
@@ -162,10 +162,10 @@ class GraphRetriever:
         for entity in similar_entities:
             semantic_score = 1 - entity['similarity_score']  # Convert distance to similarity
             
-            if valid_quarters:
+            if valid_times:
                 from ..utils.time_range import calculate_temporal_relevance_score, calculate_combined_score
-                entity_quarter = entity.get('quarter')
-                temporal_score = calculate_temporal_relevance_score(entity_quarter, valid_quarters)
+                entity_time = entity.get('date')
+                temporal_score = calculate_temporal_relevance_score(entity_time, valid_times)
                 combined_score = calculate_combined_score(
                     semantic_score, temporal_score, semantic_weight, temporal_weight
                 )
@@ -173,15 +173,20 @@ class GraphRetriever:
                 combined_score = semantic_score
             
             if combined_score >= threshold:
-                entities.append({
+                # Extract date from entity metadata
+                date_value = entity.get('date')
+                entity_result = {
                     'name': entity['name'],
                     'type': entity['type'],
                     'description': entity['description'],
                     'score': combined_score,
                     'semantic_score': semantic_score,
-                    'temporal_score': temporal_score if valid_quarters else 0.0,
-                    'metadata': {'quarter': entity.get('quarter'), 'node_id': entity['node_id']}
-                })
+                    'temporal_score': temporal_score if valid_times else 0.0,
+                    'metadata': {'node_id': entity['node_id']}
+                }
+                if date_value:
+                    entity_result['date'] = date_value
+                entities.append(entity_result)
         
         # Sort by combined score and return top-k
         entities.sort(key=lambda x: x['score'], reverse=True)
@@ -201,18 +206,23 @@ class GraphRetriever:
         entities = []
         for entity in similar_entities:
             if entity['similarity_score'] <= threshold:  # Lower score = higher similarity in some metrics
-                entities.append({
+                # Extract date from entity metadata
+                date_value = entity.get('date')
+                entity_result = {
                     'name': entity['name'],
                     'type': entity['type'],
                     'description': entity['description'],
                     'score': 1 - entity['similarity_score'],  # Convert to similarity score
-                    'metadata': {'quarter': entity.get('quarter'), 'node_id': entity['node_id']}
-                })
+                    'metadata': {'node_id': entity['node_id']}
+                }
+                if date_value:
+                    entity_result['date'] = date_value
+                entities.append(entity_result)
         
         return entities[:top_k]
     
     def _search_entities_traditional_time_aware(self, keywords: List[str], threshold: float, top_k: int,
-                                              valid_quarters: Optional[set] = None,
+                                              valid_times: Optional[set] = None,
                                               semantic_weight: float = 0.6,
                                               temporal_weight: float = 0.4) -> List[Dict[str, Any]]:
         """Search entities using traditional graph traversal with time awareness."""
@@ -225,7 +235,7 @@ class GraphRetriever:
         if len(query_embedding) == 0:
             # Fallback to text matching with time awareness
             return self._search_entities_text_match_time_aware(
-                keywords, top_k, valid_quarters, semantic_weight, temporal_weight
+                keywords, top_k, valid_times, semantic_weight, temporal_weight
             )
         
         candidates = []
@@ -237,10 +247,10 @@ class GraphRetriever:
             if node_embedding is not None and len(node_embedding) > 0:
                 semantic_score = self._calculate_similarity(query_embedding, node_embedding)
                 
-                if valid_quarters:
+                if valid_times:
                     from ..utils.time_range import calculate_temporal_relevance_score, calculate_combined_score
-                    entity_quarter = data.get('quarter')
-                    temporal_score = calculate_temporal_relevance_score(entity_quarter, valid_quarters)
+                    entity_time = data.get('date')
+                    temporal_score = calculate_temporal_relevance_score(entity_time, valid_times)
                     combined_score = calculate_combined_score(
                         semantic_score, temporal_score, semantic_weight, temporal_weight
                     )
@@ -249,7 +259,9 @@ class GraphRetriever:
                     temporal_score = 0.0
                 
                 if combined_score >= threshold:
-                    candidates.append({
+                    # Extract date from node data
+                    date_value = data.get('date')
+                    candidate_result = {
                         'name': data.get('name', node_id),
                         'type': data.get('type', 'unknown'),
                         'description': data.get('description', ''),
@@ -257,11 +269,13 @@ class GraphRetriever:
                         'semantic_score': semantic_score,
                         'temporal_score': temporal_score,
                         'metadata': {
-                            'quarter': data.get('quarter'),
                             'node_id': node_id,
                             'chunk_id': data.get('chunk_id')
                         }
-                    })
+                    }
+                    if date_value:
+                        candidate_result['date'] = date_value
+                    candidates.append(candidate_result)
         
         # Sort by combined score and return top-k
         candidates.sort(key=lambda x: x['score'], reverse=True)
@@ -288,17 +302,21 @@ class GraphRetriever:
             if node_embedding is not None and len(node_embedding) > 0:
                 similarity = self._calculate_similarity(query_embedding, node_embedding)
                 if similarity >= threshold:
-                    candidates.append({
+                    # Extract date from node data
+                    date_value = data.get('date')
+                    candidate_result = {
                         'name': data.get('name', node_id),
                         'type': data.get('type', 'unknown'),
                         'description': data.get('description', ''),
                         'score': similarity,
                         'metadata': {
-                            'quarter': data.get('quarter'),
                             'node_id': node_id,
                             'chunk_id': data.get('chunk_id')
                         }
-                    })
+                    }
+                    if date_value:
+                        candidate_result['date'] = date_value
+                    candidates.append(candidate_result)
         
         # Sort by score and return top-k
         candidates.sort(key=lambda x: x['score'], reverse=True)
@@ -318,23 +336,27 @@ class GraphRetriever:
             match_score = sum(1 for keyword in keywords_lower if keyword in text_content)
             
             if match_score > 0:
-                candidates.append({
+                # Extract date from node data
+                date_value = data.get('date')
+                candidate_result = {
                     'name': data.get('name', node_id),
                     'type': data.get('type', 'unknown'),
                     'description': data.get('description', ''),
                     'score': match_score / len(keywords_lower),  # Normalize score
                     'metadata': {
-                        'quarter': data.get('quarter'),
                         'node_id': node_id,
                         'chunk_id': data.get('chunk_id')
                     }
-                })
+                }
+                if date_value:
+                    candidate_result['date'] = date_value
+                candidates.append(candidate_result)
         
         candidates.sort(key=lambda x: x['score'], reverse=True)
         return candidates[:top_k]
 
     def _search_entities_text_match_time_aware(self, keywords: List[str], top_k: int,
-                                             valid_quarters: Optional[set] = None,
+                                             valid_times: Optional[set] = None,
                                              semantic_weight: float = 0.6,
                                              temporal_weight: float = 0.4) -> List[Dict[str, Any]]:
         """Fallback text-based entity search with time awareness when embeddings are not available."""
@@ -350,10 +372,10 @@ class GraphRetriever:
             match_count = sum(1 for keyword in keywords_lower if keyword in text_content)
             semantic_score = match_count / len(keywords_lower) if keywords_lower else 0
             
-            if valid_quarters:
+            if valid_times:
                 from ..utils.time_range import calculate_temporal_relevance_score, calculate_combined_score
-                entity_quarter = data.get('quarter')
-                temporal_score = calculate_temporal_relevance_score(entity_quarter, valid_quarters)
+                entity_time = data.get('date')
+                temporal_score = calculate_temporal_relevance_score(entity_time, valid_times)
                 combined_score = calculate_combined_score(
                     semantic_score, temporal_score, semantic_weight, temporal_weight
                 )
@@ -362,7 +384,9 @@ class GraphRetriever:
                 temporal_score = 0.0
             
             if combined_score > 0:
-                candidates.append({
+                # Extract date from node data
+                date_value = data.get('date')
+                candidate_result = {
                     'name': data.get('name', node_id),
                     'type': data.get('type', 'unknown'),
                     'description': data.get('description', ''),
@@ -370,17 +394,19 @@ class GraphRetriever:
                     'semantic_score': semantic_score,
                     'temporal_score': temporal_score,
                     'metadata': {
-                        'quarter': data.get('quarter'),
                         'node_id': node_id,
                         'chunk_id': data.get('chunk_id')
                     }
-                })
+                }
+                if date_value:
+                    candidate_result['date'] = date_value
+                candidates.append(candidate_result)
         
         candidates.sort(key=lambda x: x['score'], reverse=True)
         return candidates[:top_k]
 
     def _search_relations_time_aware(self, keywords: List[str], threshold: float, top_k: int,
-                                   valid_quarters: Optional[set] = None,
+                                   valid_times: Optional[set] = None,
                                    semantic_weight: float = 0.6,
                                    temporal_weight: float = 0.4) -> List[Dict[str, Any]]:
         """Search relationships with time awareness and combined scoring."""
@@ -404,10 +430,10 @@ class GraphRetriever:
                 if len(relation_embedding) > 0:
                     semantic_score = self._calculate_similarity(query_embedding, relation_embedding)
                     
-                    if valid_quarters:
+                    if valid_times:
                         from ..utils.time_range import calculate_temporal_relevance_score, calculate_combined_score
-                        edge_quarter = data.get('quarter')
-                        temporal_score = calculate_temporal_relevance_score(edge_quarter, valid_quarters)
+                        edge_time = data.get('date')
+                        temporal_score = calculate_temporal_relevance_score(edge_time, valid_times)
                         combined_score = calculate_combined_score(
                             semantic_score, temporal_score, semantic_weight, temporal_weight
                         )
@@ -416,7 +442,9 @@ class GraphRetriever:
                         temporal_score = 0.0
                     
                     if combined_score >= threshold:
-                        candidates.append({
+                        # Extract date from edge metadata
+                        date_value = data.get('date')
+                        relation_result = {
                             'source': self.graph.nodes[u].get('name', u),
                             'target': self.graph.nodes[v].get('name', v),
                             'type': ', '.join(relation_keywords) if relation_keywords else 'unknown',
@@ -425,22 +453,24 @@ class GraphRetriever:
                             'semantic_score': semantic_score,
                             'temporal_score': temporal_score,
                             'metadata': {
-                                'quarter': data.get('quarter'),
                                 'source_id': u,
                                 'target_id': v,
                                 'chunk_id': data.get('chunk_id')
                             }
-                        })
+                        }
+                        if date_value:
+                            relation_result['date'] = date_value
+                        candidates.append(relation_result)
             else:
                 # Fallback to text matching with time awareness
                 relation_text = data.get('description', '').lower()
                 match_count = sum(1 for keyword in keywords if keyword.lower() in relation_text)
                 semantic_score = match_count / len(keywords) if keywords else 0
                 
-                if valid_quarters:
+                if valid_times:
                     from ..utils.time_range import calculate_temporal_relevance_score, calculate_combined_score
-                    edge_quarter = data.get('quarter')
-                    temporal_score = calculate_temporal_relevance_score(edge_quarter, valid_quarters)
+                    edge_time = data.get('date')
+                    temporal_score = calculate_temporal_relevance_score(edge_time, valid_times)
                     combined_score = calculate_combined_score(
                         semantic_score, temporal_score, semantic_weight, temporal_weight
                     )
@@ -449,7 +479,9 @@ class GraphRetriever:
                     temporal_score = 0.0
                 
                 if combined_score > 0:
-                    candidates.append({
+                    # Extract date from edge metadata
+                    date_value = data.get('date')
+                    relation_result = {
                         'source': self.graph.nodes[u].get('name', u),
                         'target': self.graph.nodes[v].get('name', v),
                         'type': ', '.join(relation_keywords) if relation_keywords else 'unknown',
@@ -458,12 +490,14 @@ class GraphRetriever:
                         'semantic_score': semantic_score,
                         'temporal_score': temporal_score,
                         'metadata': {
-                            'quarter': data.get('quarter'),
                             'source_id': u,
                             'target_id': v,
                             'chunk_id': data.get('chunk_id')
                         }
-                    })
+                    }
+                    if date_value:
+                        relation_result['date'] = date_value
+                    candidates.append(relation_result)
 
         candidates.sort(key=lambda x: x['score'], reverse=True)
         return candidates[:top_k]
@@ -490,19 +524,23 @@ class GraphRetriever:
                 if len(relation_embedding) > 0:
                     similarity = self._calculate_similarity(query_embedding, relation_embedding)
                     if similarity >= threshold:
-                        candidates.append({
+                        # Extract date from edge metadata
+                        date_value = data.get('date')
+                        relation_result = {
                             'source': self.graph.nodes[u].get('name', u),
                             'target': self.graph.nodes[v].get('name', v),
                             'type': ', '.join(relation_keywords) if relation_keywords else 'unknown',
                             'description': data.get('description', ''),
                             'score': similarity,
                             'metadata': {
-                                'quarter': data.get('quarter'),
                                 'source_id': u,
                                 'target_id': v,
                                 'chunk_id': data.get('chunk_id')
                             }
-                        })
+                        }
+                        if date_value:
+                            relation_result['date'] = date_value
+                        candidates.append(relation_result)
             else:
                 # Fallback to text matching - description already contains relation types
                 relation_text = data.get('description', '').lower()
@@ -510,19 +548,23 @@ class GraphRetriever:
                 
                 if match_score > 0:
                     relation_keywords = data.get('relation_keywords', [])
-                    candidates.append({
+                    # Extract date from edge metadata
+                    date_value = data.get('date')
+                    relation_result = {
                         'source': self.graph.nodes[u].get('name', u),
                         'target': self.graph.nodes[v].get('name', v),
                         'type': ', '.join(relation_keywords) if relation_keywords else 'unknown',
                         'description': data.get('description', ''),
                         'score': match_score / len(keywords),
                         'metadata': {
-                            'quarter': data.get('quarter'),
                             'source_id': u,
                             'target_id': v,
                             'chunk_id': data.get('chunk_id')
                         }
-                    })
+                    }
+                    if date_value:
+                        relation_result['date'] = date_value
+                    candidates.append(relation_result)
 
         candidates.sort(key=lambda x: x['score'], reverse=True)
         return candidates[:top_k]
@@ -533,7 +575,7 @@ class GraphRetriever:
                                    enable_time_filtering: bool = False,
                                    temporal_expansion_mode: str = "with_temporal",
                                    temporal_evolution_scope: str = "cross_time",
-                                   valid_quarters: Optional[set] = None,
+                                   valid_times: Optional[set] = None,
                                    semantic_weight: float = 0.6,
                                    temporal_weight: float = 0.4) -> Tuple[List[Dict], List[Dict]]:
         """
@@ -576,10 +618,10 @@ class GraphRetriever:
                         continue
                     
                     # Apply unified time filtering if enabled
-                    if enable_time_filtering and valid_quarters:
-                        neighbor_quarter = neighbor_data.get('quarter')
+                    if enable_time_filtering and valid_times:
+                        neighbor_time = neighbor_data.get('date')
                         should_include_neighbor = self._should_include_neighbor_unified(
-                            node_id, neighbor_id, neighbor_quarter, valid_quarters,
+                            node_id, neighbor_id, neighbor_time, valid_times,
                             temporal_expansion_mode, temporal_evolution_scope
                         )
                         if not should_include_neighbor:
@@ -588,7 +630,7 @@ class GraphRetriever:
                     # Calculate comprehensive neighbor score with time awareness
                     neighbor_score = self._calculate_neighbor_importance_unified(
                         node_id, neighbor_id, neighbor_data, centrality_cache, hop,
-                        valid_quarters, semantic_weight, temporal_weight
+                        valid_times, semantic_weight, temporal_weight
                     )
                     
                     hop_candidates.append({
@@ -609,19 +651,23 @@ class GraphRetriever:
                 source_id = candidate['source_id']
                 
                 # Add expanded entity
-                expanded_entities.append({
+                # Extract date from neighbor metadata
+                date_value = neighbor_data.get('date')
+                entity_result = {
                     'name': neighbor_data.get('name', neighbor_id),
                     'type': neighbor_data.get('type', 'unknown'),
                     'description': neighbor_data.get('description', ''),
                     'score': candidate['score'],
                     'metadata': {
-                        'quarter': neighbor_data.get('quarter'),
                         'node_id': neighbor_id,
                         'chunk_id': neighbor_data.get('chunk_id'),
                         'hop_distance': candidate['hop_distance'],
                         'centrality_score': centrality_cache['nodes'].get(neighbor_id, 0.0)
                     }
-                })
+                }
+                if date_value:
+                    entity_result['date'] = date_value
+                expanded_entities.append(entity_result)
                 
                 # Add connecting relation with unified edge scoring
                 if self.graph.has_edge(source_id, neighbor_id):
@@ -629,25 +675,29 @@ class GraphRetriever:
                     for key, relation_data in edge_data.items():
                         edge_score = self._calculate_edge_importance_unified(
                             source_id, neighbor_id, relation_data, centrality_cache, hop,
-                            valid_quarters, semantic_weight, temporal_weight
+                            valid_times, semantic_weight, temporal_weight
                         )
                         
                         relation_keywords = relation_data.get('relation_keywords', [])
-                        expanded_relations.append({
+                        # Extract date from edge metadata
+                        date_value = relation_data.get('date')
+                        relation_result = {
                             'source': self.graph.nodes[source_id].get('name', source_id),
                             'target': neighbor_data.get('name', neighbor_id),
                             'type': ', '.join(relation_keywords) if relation_keywords else 'unknown',
                             'description': relation_data.get('description', ''),
                             'score': edge_score,
                             'metadata': {
-                                'quarter': relation_data.get('quarter'),
                                 'source_id': source_id,
                                 'target_id': neighbor_id,
                                 'chunk_id': relation_data.get('chunk_id'),
                                 'hop_distance': candidate['hop_distance'],
                                 'edge_centrality': centrality_cache['edges'].get((source_id, neighbor_id), 0.0)
                             }
-                        })
+                        }
+                        if date_value:
+                            relation_result['date'] = date_value
+                        expanded_relations.append(relation_result)
                 
                 next_nodes.append(neighbor_id)
                 visited_nodes.add(neighbor_id)
@@ -659,22 +709,22 @@ class GraphRetriever:
         return expanded_entities, expanded_relations
 
     def _should_include_neighbor_unified(self, source_id: str, neighbor_id: str, 
-                                       neighbor_quarter: str, valid_quarters: set,
+                                       neighbor_time: str, valid_times: set,
                                        temporal_expansion_mode: str, 
                                        temporal_evolution_scope: str) -> bool:
         """
         Unified logic to determine if a neighbor should be included based on time filtering rules.
         """
-        # For expanded mode, we already expanded valid_quarters to include neighbors
+        # For expanded mode, we already expanded valid_times to include neighbors
         if temporal_expansion_mode == "expanded":
-            return neighbor_quarter in valid_quarters
+            return neighbor_time in valid_times
         
-        # For strict mode, only allow exact quarter matches
+        # For strict mode, only allow exact time matches
         if temporal_expansion_mode == "strict":
-            return neighbor_quarter in valid_quarters
+            return neighbor_time in valid_times
         
-        # For with_temporal mode, allow valid quarters + temporal evolution connections
-        if neighbor_quarter in valid_quarters:
+        # For with_temporal mode, allow valid times + temporal evolution connections
+        if neighbor_time in valid_times:
             return True
         
         # Check if connection is via temporal evolution edge
@@ -687,7 +737,7 @@ class GraphRetriever:
                     if temporal_evolution_scope == "all":
                         return True
                     elif temporal_evolution_scope == "within_range":
-                        return neighbor_quarter in valid_quarters
+                        return neighbor_time in valid_times
                     elif temporal_evolution_scope == "cross_time":
                         return True  # Allow cross-time connections
         
@@ -695,7 +745,7 @@ class GraphRetriever:
 
     def _calculate_neighbor_importance_unified(self, source_id: str, neighbor_id: str, 
                                              neighbor_data: Dict, centrality_cache: Dict, 
-                                             hop: int, valid_quarters: Optional[set] = None,
+                                             hop: int, valid_times: Optional[set] = None,
                                              semantic_weight: float = 0.6,
                                              temporal_weight: float = 0.4) -> float:
         """
@@ -719,10 +769,10 @@ class GraphRetriever:
 
         # 2. Temporal score
         temporal_score = 1.0  # Default to full temporal relevance if no filtering
-        if valid_quarters:
+        if valid_times:
             from ..utils.time_range import calculate_temporal_relevance_score
-            neighbor_quarter = neighbor_data.get('quarter')
-            temporal_score = calculate_temporal_relevance_score(neighbor_quarter, valid_quarters)
+            neighbor_time = neighbor_data.get('date')
+            temporal_score = calculate_temporal_relevance_score(neighbor_time, valid_times)
 
         # 3. Node centrality score
         centrality_score = centrality_cache['nodes'].get(neighbor_id, 0.0)
@@ -757,7 +807,7 @@ class GraphRetriever:
 
     def _calculate_edge_importance_unified(self, source_id: str, target_id: str, 
                                          edge_data: Dict, centrality_cache: Dict, 
-                                         hop: int, valid_quarters: Optional[set] = None,
+                                         hop: int, valid_times: Optional[set] = None,
                                          semantic_weight: float = 0.6,
                                          temporal_weight: float = 0.4) -> float:
         """
@@ -796,10 +846,10 @@ class GraphRetriever:
 
         # 2. Temporal score
         temporal_score = 1.0
-        if valid_quarters:
+        if valid_times:
             from ..utils.time_range import calculate_temporal_relevance_score
-            edge_quarter = edge_data.get('quarter')
-            temporal_score = calculate_temporal_relevance_score(edge_quarter, valid_quarters)
+            edge_time = edge_data.get('date')
+            temporal_score = calculate_temporal_relevance_score(edge_time, valid_times)
 
         # 3. Edge centrality score
         edge_centrality = centrality_cache['edges'].get((source_id, target_id), 0.0)
@@ -823,7 +873,7 @@ class GraphRetriever:
         return min(edge_score, 1.0)  # Cap at 1.0
 
     def _extract_entities_from_relations(self, relations: List[Dict], 
-                                       valid_quarters: Optional[set] = None,
+                                       valid_times: Optional[set] = None,
                                        semantic_weight: float = 0.6,
                                        temporal_weight: float = 0.4) -> List[Dict]:
         """
@@ -845,45 +895,53 @@ class GraphRetriever:
                 source_data = self.graph.nodes[source_id]
                 if source_data.get('node_type') == 'entity' and source_id not in entity_candidates:
                     entity_score = self._calculate_entity_score_from_relation(
-                        source_id, source_data, relation, valid_quarters, semantic_weight, temporal_weight
+                        source_id, source_data, relation, valid_times, semantic_weight, temporal_weight
                     )
-                    entity_candidates[source_id] = {
+                    # Extract date from source metadata
+                    date_value = source_data.get('date')
+                    entity_result = {
                         'name': source_data.get('name', source_id),
                         'type': source_data.get('type', 'unknown'),
                         'description': source_data.get('description', ''),
                         'score': entity_score,
                         'metadata': {
-                            'quarter': source_data.get('quarter'),
                             'node_id': source_id,
                             'chunk_id': source_data.get('chunk_id'),
                             'source': 'relation_connected'  # Mark as relation-discovered
                         }
                     }
+                    if date_value:
+                        entity_result['date'] = date_value
+                    entity_candidates[source_id] = entity_result
             
             # Process target node
             if target_id and self.graph.has_node(target_id):
                 target_data = self.graph.nodes[target_id]
                 if target_data.get('node_type') == 'entity' and target_id not in entity_candidates:
                     entity_score = self._calculate_entity_score_from_relation(
-                        target_id, target_data, relation, valid_quarters, semantic_weight, temporal_weight
+                        target_id, target_data, relation, valid_times, semantic_weight, temporal_weight
                     )
-                    entity_candidates[target_id] = {
+                    # Extract date from target metadata
+                    date_value = target_data.get('date')
+                    entity_result = {
                         'name': target_data.get('name', target_id),
                         'type': target_data.get('type', 'unknown'),
                         'description': target_data.get('description', ''),
                         'score': entity_score,
                         'metadata': {
-                            'quarter': target_data.get('quarter'),
                             'node_id': target_id,
                             'chunk_id': target_data.get('chunk_id'),
                             'source': 'relation_connected'  # Mark as relation-discovered
                         }
                     }
+                    if date_value:
+                        entity_result['date'] = date_value
+                    entity_candidates[target_id] = entity_result
         
         return list(entity_candidates.values())
 
     def _calculate_entity_score_from_relation(self, node_id: str, node_data: Dict, 
-                                            relation: Dict, valid_quarters: Optional[set],
+                                            relation: Dict, valid_times: Optional[set],
                                             semantic_weight: float, temporal_weight: float) -> float:
         """
         Calculate entity score based on its connection to a relevant relation.
@@ -894,10 +952,10 @@ class GraphRetriever:
         
         # Temporal relevance if time filtering is enabled
         temporal_score = 1.0
-        if valid_quarters:
+        if valid_times:
             from ..utils.time_range import calculate_temporal_relevance_score
-            node_quarter = node_data.get('quarter')
-            temporal_score = calculate_temporal_relevance_score(node_quarter, valid_quarters)
+            node_time = node_data.get('date')
+            temporal_score = calculate_temporal_relevance_score(node_time, valid_times)
         
         # Combine relation relevance with temporal relevance
         from ..utils.time_range import calculate_combined_score
@@ -984,10 +1042,10 @@ class GraphRetriever:
                     # Apply time filtering if enabled
                     if time_range:
                         from ..utils.time_range import TimeRangeParser
-                        valid_quarters = TimeRangeParser.parse_time_range(time_range)
-                        if valid_quarters:
-                            neighbor_quarter = neighbor_data.get('quarter')
-                            if neighbor_quarter not in valid_quarters:
+                        valid_times = TimeRangeParser.parse_time_range(time_range)
+                        if valid_times:
+                            neighbor_time = neighbor_data.get('date')
+                            if neighbor_time not in valid_times:
                                 # Skip neighbors outside time range unless it's a temporal evolution
                                 edge_data = self.graph.get_edge_data(node_id, neighbor_id)
                                 is_temporal_edge = False
@@ -1024,19 +1082,23 @@ class GraphRetriever:
                 source_id = candidate['source_id']
                 
                 # Add expanded entity
-                expanded_entities.append({
+                # Extract date from neighbor metadata
+                date_value = neighbor_data.get('date')
+                entity_result = {
                     'name': neighbor_data.get('name', neighbor_id),
                     'type': neighbor_data.get('type', 'unknown'),
                     'description': neighbor_data.get('description', ''),
                     'score': candidate['score'],
                     'metadata': {
-                        'quarter': neighbor_data.get('quarter'),
                         'node_id': neighbor_id,
                         'chunk_id': neighbor_data.get('chunk_id'),
                         'hop_distance': candidate['hop_distance'],
                         'centrality_score': centrality_cache['nodes'].get(neighbor_id, 0.0)
                     }
-                })
+                }
+                if date_value:
+                    entity_result['date'] = date_value
+                expanded_entities.append(entity_result)
                 
                 # Add connecting relation with edge scoring
                 if self.graph.has_edge(source_id, neighbor_id):
@@ -1047,21 +1109,25 @@ class GraphRetriever:
                         )
                         
                         relation_keywords = relation_data.get('relation_keywords', [])
-                        expanded_relations.append({
+                        # Extract date from edge metadata
+                        date_value = relation_data.get('date')
+                        relation_result = {
                             'source': self.graph.nodes[source_id].get('name', source_id),
                             'target': neighbor_data.get('name', neighbor_id),
                             'type': ', '.join(relation_keywords) if relation_keywords else 'unknown',
                             'description': relation_data.get('description', ''),
                             'score': edge_score,
                             'metadata': {
-                                'quarter': relation_data.get('quarter'),
                                 'source_id': source_id,
                                 'target_id': neighbor_id,
                                 'chunk_id': relation_data.get('chunk_id'),
                                 'hop_distance': candidate['hop_distance'],
                                 'edge_centrality': centrality_cache['edges'].get((source_id, neighbor_id), 0.0)
                             }
-                        })
+                        }
+                        if date_value:
+                            relation_result['date'] = date_value
+                        expanded_relations.append(relation_result)
                 
                 next_nodes.append(neighbor_id)
                 visited_nodes.add(neighbor_id)
@@ -1302,12 +1368,12 @@ class GraphRetriever:
                 data.get('name', '').lower() == entity_name.lower()):
                 temporal_nodes.append({
                     'node_id': node_id,
-                    'quarter': data.get('quarter', ''),
+                    'date': data.get('date', ''),
                     'description': data.get('description', ''),
                     'data': data
                 })
         
-        # Sort by quarter
-        temporal_nodes.sort(key=lambda x: x['quarter'])
+        # Sort by date
+        temporal_nodes.sort(key=lambda x: x['date'])
         
         return temporal_nodes

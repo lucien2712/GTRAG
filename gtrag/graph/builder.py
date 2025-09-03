@@ -29,6 +29,7 @@ except ImportError:
 from ..extractors.llm_extractor import Entity, Relation
 from ..config.settings import ModelConfig
 from ..storage.vector_store import VectorStore, FAISSVectorStore, InMemoryVectorStore
+from ..utils.time_handler import TimeHandler
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,36 @@ class GraphBuilder:
     building temporal associations, and serialization (save/load).
     """
     
+    def _get_time_suffix(self, metadata: dict) -> str:
+        """
+        Extract time suffix for node IDs, using unified date field.
+        
+        Args:
+            metadata: Entity or relation metadata
+            
+        Returns:
+            Time suffix string for node ID generation
+        """
+        return metadata.get('date', 'TIME_UNKNOWN')
+    
+    def _prepare_time_metadata(self, metadata: dict) -> dict:
+        """
+        Prepare time metadata for storage, using unified date field.
+        
+        Args:
+            metadata: Original metadata dict
+            
+        Returns:
+            Metadata with standardized date field
+        """
+        enhanced_metadata = metadata.copy()
+        
+        # Ensure we have a date field
+        if 'date' not in enhanced_metadata or not enhanced_metadata['date']:
+            enhanced_metadata['date'] = 'TIME_UNKNOWN'
+        
+        return enhanced_metadata
+
     def __init__(self, 
                  embedding_model_name: Optional[str] = None, 
                  embedding_func: Optional[Callable[[str], np.ndarray]] = None,
@@ -83,9 +114,16 @@ class GraphBuilder:
                     # Determine embedding dimension
                     test_embedding = self.encode("test")
                     dimension = len(test_embedding) if len(test_embedding) > 0 else 384
-                    self.vector_store = FAISSVectorStore(dimension=dimension, metric="cosine")
+                    
+                    # Try FAISS first if available
+                    try:
+                        self.vector_store = FAISSVectorStore(dimension=dimension, metric="cosine")
+                        logger.info("Initialized FAISS vector store")
+                    except ImportError:
+                        logger.info("FAISS not available, using in-memory vector store")
+                        self.vector_store = InMemoryVectorStore(dimension=dimension, metric="cosine")
                 except Exception as e:
-                    logger.warning(f"Failed to initialize FAISS vector store: {e}. Using in-memory store.")
+                    logger.warning(f"Failed to initialize vector store: {e}. Using in-memory fallback.")
                     dimension = 384  # Default dimension
                     self.vector_store = InMemoryVectorStore(dimension=dimension, metric="cosine")
         else:
@@ -102,7 +140,7 @@ class GraphBuilder:
         ids_to_add = []
         
         for entity in entities:
-            node_id = f"{entity.name}__{entity.metadata.get('quarter', 'Q_UNKNOWN')}"
+            node_id = f"{entity.name}__{self._get_time_suffix(entity.metadata)}"
             
             if self.graph.has_node(node_id):
                 # Node exists, perform merge
@@ -140,7 +178,7 @@ class GraphBuilder:
                         'node_id': node_id,
                         'type': 'entity',
                         'entity_type': entity.type,
-                        'quarter': entity.metadata.get('quarter', 'Q_UNKNOWN')
+                        'date': self._get_time_suffix(entity.metadata)
                     })
                     ids_to_add.append(node_id)
                 
@@ -152,6 +190,9 @@ class GraphBuilder:
                 entity_text = f"{entity.name}\n{entity.description}"
                 embedding = self.encode(entity_text)
                 
+                # Prepare metadata with unified date field
+                enhanced_metadata = self._prepare_time_metadata(entity.metadata)
+                
                 self.graph.add_node(
                     node_id,
                     node_type="entity",
@@ -160,7 +201,7 @@ class GraphBuilder:
                     description=entity.description,
                     embedding=embedding if len(embedding) > 0 else None,
                     source_doc_id=[entity.source_doc_id],  # Initialize as list
-                    **entity.metadata
+                    **enhanced_metadata
                 )
                 
                 # Add to vector store
@@ -170,7 +211,7 @@ class GraphBuilder:
                         'node_id': node_id,
                         'type': 'entity',
                         'entity_type': entity.type,
-                        'quarter': entity.metadata.get('quarter', 'Q_UNKNOWN')
+                        'date': self._get_time_suffix(entity.metadata)
                     })
                     ids_to_add.append(node_id)
         
@@ -183,8 +224,8 @@ class GraphBuilder:
     def add_relations(self, relations: List[Relation]):
         """Add a batch of relationships as edges to the graph. If relationship exists, merge its attributes."""
         for relation in relations:
-            source_id = f"{relation.source}__{relation.metadata.get('quarter', 'Q_UNKNOWN')}"
-            target_id = f"{relation.target}__{relation.metadata.get('quarter', 'Q_UNKNOWN')}"
+            source_id = f"{relation.source}__{self._get_time_suffix(relation.metadata)}"
+            target_id = f"{relation.target}__{self._get_time_suffix(relation.metadata)}"
             
             # Use a single key for all relations between two nodes
             key = "relation"
@@ -224,7 +265,7 @@ class GraphBuilder:
                         description=f"{relation.keywords}: {relation.description}",
                         evidence=relation.evidence,
                         source_doc_id=relation.source_doc_id,
-                        **relation.metadata
+                        **self._prepare_time_metadata(relation.metadata)
                     )
                     logger.debug(f"Added relation edge: {source_id} -> {target_id} ({relation.keywords})")
             else:
@@ -235,44 +276,10 @@ class GraphBuilder:
                     missing_nodes.append(target_id)
                 logger.warning(f"Cannot add relation {relation.type}: missing nodes {missing_nodes}")
     
-    def build_temporal_connections(self):
-        """Build cross-temporal connection edges - this is one of gtrag's core features."""
-        entity_nodes = {}
-        
-        # Group all nodes by entity name
-        for node_id, data in self.graph.nodes(data=True):
-            if data.get("node_type") == "entity":
-                entity_name = data.get("name")
-                if entity_name not in entity_nodes:
-                    entity_nodes[entity_name] = []
-                # Record node ID and its quarter information
-                entity_nodes[entity_name].append((data.get("quarter", ""), node_id))
-        
-        # Build temporal evolution edges between different quarter nodes of the same entity
-        temporal_edges_added = 0
-        for entity_name, nodes in entity_nodes.items():
-            # Sort by quarter to ensure correct temporal order
-            sorted_nodes = sorted(nodes, key=lambda x: x[0])
-            
-            for i in range(len(sorted_nodes) - 1):
-                source_q, source_id = sorted_nodes[i]
-                target_q, target_id = sorted_nodes[i+1]
-                
-                self.graph.add_edge(
-                    source_id,
-                    target_id,
-                    key="temporal_evolution",
-                    relation_keywords=["temporal_evolution"],
-                    description=f"temporal_evolution: {entity_name} evolution from {source_q} to {target_q}"
-                )
-                temporal_edges_added += 1
-        
-        logger.info(f"Built {temporal_edges_added} temporal connections")
-    
     def get_graph_stats(self) -> Dict[str, Any]:
         """Get graph statistics."""
         node_types = {}
-        relation_types = {}
+        relation_keywords_counts = {}
         
         # Count node types
         for node_id, data in self.graph.nodes(data=True):
@@ -283,13 +290,13 @@ class GraphBuilder:
         for u, v, data in self.graph.edges(data=True):
             edge_relation_keywords = data.get('relation_keywords', ['unknown'])
             for keywords in edge_relation_keywords:
-                relation_types[keywords] = relation_types.get(keywords, 0) + 1
+                relation_keywords_counts[keywords] = relation_keywords_counts.get(keywords, 0) + 1
         
         stats = {
             "num_nodes": self.graph.number_of_nodes(),
             "num_edges": self.graph.number_of_edges(),
             "node_types": node_types,
-            "relation_types": relation_types,
+            "relation_keywords": relation_keywords_counts,
             "has_vector_store": self.vector_store is not None
         }
         
@@ -323,7 +330,7 @@ class GraphBuilder:
                     'name': node_data.get('name'),
                     'type': node_data.get('type'),
                     'description': node_data.get('description'),
-                    'quarter': node_data.get('quarter')
+                    'date': node_data.get('date')
                 })
         
         return enriched_results
@@ -361,11 +368,13 @@ class GraphBuilder:
                 test_embedding = self.encode("test")
                 dimension = len(test_embedding) if len(test_embedding) > 0 else 384
                 
-                if FAISSVectorStore:
+                # Try FAISS first, fallback to in-memory
+                try:
                     self.vector_store = FAISSVectorStore(dimension=dimension, metric="cosine")
-                else:
+                    logger.info(f"Initialized FAISS vector store (dimension={dimension})")
+                except ImportError:
                     self.vector_store = InMemoryVectorStore(dimension=dimension, metric="cosine")
-                logger.info(f"Initialized empty vector store (dimension={dimension})")
+                    logger.info(f"Initialized in-memory vector store (dimension={dimension})")
             except Exception as e:
                 logger.warning(f"Failed to initialize vector store: {e}")
                 self.vector_store = None
@@ -373,8 +382,8 @@ class GraphBuilder:
         logger.info(f"Graph loaded from {filepath}")
         # Note: Vector store loading is now handled by gtragSystem
     
-    def get_neighbors(self, node_id: str, relation_types: Optional[List[str]] = None) -> List[Dict[str, Any]]:
-        """Get neighbors of a node with optional relation type filtering."""
+    def get_neighbors(self, node_id: str, relation_keywords_filter: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        """Get neighbors of a node with optional relation keywords filtering."""
         if not self.graph.has_node(node_id):
             return []
         
@@ -382,13 +391,15 @@ class GraphBuilder:
         for neighbor_id in self.graph.neighbors(node_id):
             edge_data = self.graph.get_edge_data(node_id, neighbor_id)
             for key, data in edge_data.items():
-                if relation_types is None or data.get('relation_type') in relation_types:
+                edge_keywords = data.get('relation_keywords', [])
+                # Check if any of the edge keywords match the filter
+                if relation_keywords_filter is None or any(kw in edge_keywords for kw in relation_keywords_filter):
                     neighbor_data = self.graph.nodes[neighbor_id]
                     neighbors.append({
                         'node_id': neighbor_id,
                         'name': neighbor_data.get('name'),
                         'type': neighbor_data.get('type'),
-                        'relation_type': data.get('relation_type'),
+                        'relation_keywords': edge_keywords,
                         'relation_description': data.get('description')
                     })
         
@@ -406,7 +417,7 @@ class GraphBuilder:
         # Group entities by name and type
         entities_by_name_type = {}
         for node_id, node_data in self.graph.nodes(data=True):
-            if node_data.get('category') == 'entity':
+            if node_data.get('node_type') == 'entity':
                 entity_name = node_data.get('name', '').lower()
                 entity_type = node_data.get('type', '')
                 key = (entity_name, entity_type)
@@ -494,11 +505,3 @@ class GraphBuilder:
                             temporal_connections_added += 1
         
         logger.info(f"Added {temporal_connections_added} temporal evolution connections")
-    
-    def get_graph_stats(self) -> Dict[str, Any]:
-        """Get statistics about the knowledge graph."""
-        return {
-            "num_nodes": self.graph.number_of_nodes(),
-            "num_edges": self.graph.number_of_edges(),
-            "vector_store_enabled": self.use_vector_store and self.vector_store is not None
-        }

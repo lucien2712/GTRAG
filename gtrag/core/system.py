@@ -36,9 +36,15 @@ class gtragSystem:
     Main gtrag system that integrates all components for document indexing and querying.
     
     This class provides a simple API for:
-    1. Document insertion with temporal metadata
-    2. Building temporal connections between entities
-    3. Querying the knowledge graph with intelligent retrieval
+    1. Document insertion with unified temporal metadata (single 'date' field)
+    2. Building temporal connections between entities across time periods
+    3. Querying the knowledge graph with intelligent time-aware retrieval
+    
+    Key Features:
+    - Unified 'date' field supporting all time formats (quarters, ISO dates, months, years, custom labels)
+    - Flexible time range filtering in queries
+    - Automatic temporal evolution tracking
+    - Cross-document temporal analysis
     """
     
     def __init__(self, 
@@ -80,7 +86,18 @@ class gtragSystem:
         Args:
             text: Document content to index
             doc_id: Unique document identifier
-            metadata: Document metadata (include 'timestamp', 'quarter', 'date', or 'time' for temporal functionality)
+            metadata: Document metadata with unified 'date' field for temporal functionality
+                     Supported date formats:
+                     - Quarters: "2024Q1", "2023Q4"
+                     - ISO dates: "2024-03-15", "2024-03"
+                     - Month names: "March 2024", "Mar 2024"  
+                     - Years: "2024", "2023"
+                     - Custom labels: "Phase-Alpha", "Sprint-3"
+        
+        Example:
+            rag.insert("Apple reported strong Q1 results...", "doc1", {"date": "2024Q1"})
+            rag.insert("Product launched on March 15...", "doc2", {"date": "2024-03-15"})
+            rag.insert("Annual review shows growth...", "doc3", {"date": "2024"})
         """
         logger.info(f"Starting document insertion: {doc_id}")
         metadata = metadata or {}
@@ -189,14 +206,14 @@ class gtragSystem:
         supplementary_chunks = []
         if params.enable_time_filtering and params.time_range:
             from ..utils.time_range import TimeRangeParser
-            valid_quarters = TimeRangeParser.parse_time_range(params.time_range)
-            if valid_quarters:
+            valid_times = TimeRangeParser.parse_time_range(params.time_range)
+            if valid_times:
                 # Collect time-relevant chunk IDs that are NOT already in primary chunks
                 time_relevant_chunk_ids = set()
                 for chunk_id in self.chunk_store.keys():
                     if chunk_id not in primary_chunk_ids:  # Avoid duplicates
                         chunk_time = self._extract_time_from_chunk_id(chunk_id)
-                        if chunk_time in valid_quarters:
+                        if chunk_time in valid_times:
                             time_relevant_chunk_ids.add(chunk_id)
                 
                 # Add supplementary chunks (already deduplicated)
@@ -218,8 +235,8 @@ class gtragSystem:
         time_context = ""
         if params.enable_time_filtering and params.time_range:
             from ..utils.time_range import TimeRangeParser
-            expanded_quarters = TimeRangeParser.expand_time_range(params.time_range)
-            time_context = f"\n---Time Range---\nAnalysis limited to time period: {', '.join(expanded_quarters)}\n"
+            expanded_times = TimeRangeParser.expand_time_range(params.time_range)
+            time_context = f"\n---Time Range---\nAnalysis limited to time period: {', '.join(expanded_times)}\n"
         
         rag_prompt = f"""---Context Data---
 {context_data}{time_context}
@@ -271,16 +288,24 @@ List the most relevant sources used
                 name = entity.get('name', 'Unknown')
                 entity_type = entity.get('type', 'Unknown') 
                 description = entity.get('description', 'No description')
-                context_parts.append(f"- **{name}** ({entity_type}): {description}")
+                date = entity.get('date')
+                if date:
+                    context_parts.append(f"- **{name}** ({entity_type}) [{date}]: {description}")
+                else:
+                    context_parts.append(f"- **{name}** ({entity_type}): {description}")
         
         if relations:
             context_parts.append("\n### Relations")
             for relation in relations:
                 source = relation.get('source', 'Unknown')
                 target = relation.get('target', 'Unknown')
-                relation_type = relation.get('type', 'related to')
+                relation_keywords = relation.get('type', 'related to')
                 description = relation.get('description', 'No description')
-                context_parts.append(f"- **{source}** {relation_type} **{target}**: {description}")
+                date = relation.get('date')
+                if date:
+                    context_parts.append(f"- **{source}** {relation_keywords} **{target}** [{date}]: {description}")
+                else:
+                    context_parts.append(f"- **{source}** {relation_keywords} **{target}**: {description}")
         
         if chunks:
             context_parts.append("\n### Document Chunks")

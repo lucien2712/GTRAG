@@ -102,27 +102,27 @@ def main():
         {
             "text": "Apple Inc. reported iPhone sales of 80 million units in Q4 2023, showing strong demand for the latest models.", 
             "doc_id": "apple_q4_2023", 
-            "metadata": {"date": "2023Q4"}
+            "metadata": {"date": "2023Q4"}  # Quarter format
         },
         {
-            "text": "By Q1 2024, Apple's iPhone sales increased to 90 million units due to new model releases and improved supply chain.", 
-            "doc_id": "apple_q1_2024", 
-            "metadata": {"date": "2024Q1"}
+            "text": "Apple launched the iPhone 15 on September 15, 2023, featuring titanium design and enhanced camera capabilities.", 
+            "doc_id": "apple_launch_sep_2023", 
+            "metadata": {"date": "2023-09-15"}  # ISO date format
         },
         {
-            "text": "Microsoft's cloud business revenue grew significantly by 30% in Q1 2024, driven by Azure services and enterprise adoption.", 
-            "doc_id": "ms_q1_2024", 
-            "metadata": {"date": "2024Q1"}
+            "text": "Microsoft's cloud business revenue grew significantly by 30% in March 2024, driven by Azure services and enterprise adoption.", 
+            "doc_id": "ms_march_2024", 
+            "metadata": {"date": "2024-03"}  # Year-month format
         },
         {
-            "text": "In Q2 2024, Microsoft continued strong cloud performance with 35% year-over-year growth, expanding into new markets.",
-            "doc_id": "ms_q2_2024",
-            "metadata": {"date": "2024Q2"}
+            "text": "Google's annual developer conference in 2024 showcased major AI advances and new cloud computing capabilities.",
+            "doc_id": "google_annual_2024",
+            "metadata": {"date": "2024"}  # Year only format
         },
         {
-            "text": "Apple's services revenue reached $22.3 billion in Q1 2024, representing 16% growth from the previous year.",
-            "doc_id": "apple_services_q1_2024",
-            "metadata": {"date": "2024Q1"}
+            "text": "During Phase-Alpha of the Mars mission project, SpaceX successfully tested the new Raptor engine design for improved efficiency.",
+            "doc_id": "spacex_phase_alpha",
+            "metadata": {"date": "Phase-Alpha"}  # Custom label format
         }
     ]
     
@@ -155,10 +155,10 @@ def main():
     
     # 4. Query Examples
     queries = [
-        "What are the trends in Apple iPhone sales over time?",
-        "How is Microsoft's cloud business performing across quarters?",
-        "Compare Apple and Microsoft's performance in 2024 Q1.",
-        "What is Apple's services revenue trend?"
+        "What are the trends in Apple iPhone sales and product launches?",
+        "How is Microsoft's cloud business performing?",
+        "What major technology developments happened in 2024?",
+        "What innovations occurred during project phases like Phase-Alpha?"
     ]
     
     for i, question in enumerate(queries, 1):
@@ -338,7 +338,7 @@ def demo_batch_processing():
     """)
     print("\n   📝 This would process multiple files concurrently with:")
     print("      • Automatic file format detection")
-    print("      • Quarter extraction from filenames/content")
+    print("      • Flexible time extraction from filenames/content (quarters, dates, years, custom labels)")
     print("      • Progress tracking and error handling")
     print("      • Parallel processing for better performance")
 

@@ -22,7 +22,7 @@ def main():
     # Initialize gtrag system
     rag = gtragSystem()
     
-    # Sample temporal documents with more complex data
+    # Sample temporal documents with diverse time formats and complex data
     sample_documents = [
         {
             "doc_id": "apple_earnings_2024q1",
@@ -50,72 +50,101 @@ def main():
             The company's diverse revenue streams and strong Services growth offset
             hardware declines in certain categories.
             """,
-            "metadata": {"date": "2024Q1", "company": "Apple", "report_type": "earnings"}
+            "metadata": {"date": "2024Q1", "company": "Apple", "report_type": "earnings"}  # Quarter format
         },
         {
-            "doc_id": "apple_earnings_2024q2",
+            "doc_id": "apple_wwdc_june_2024",
             "text": """
-            Apple Inc. Q2 2024 Earnings Report - Mixed Results
+            Apple WWDC 2024 - June 10, 2024 Keynote
             
-            Financial Performance:
-            - Total revenue: $90.8 billion (-4% YoY)
-            - iPhone revenue: $51.0 billion (-10% YoY)
-            - Services revenue: $24.2 billion (+14% YoY)
-            - Mac revenue: $5.6 billion (-31% YoY)
-            - iPad revenue: $5.5 billion (-17% YoY)
+            Major Announcements:
+            - iOS 18 with revolutionary AI features
+            - macOS Sequoia with enhanced productivity tools
+            - Apple Intelligence: On-device AI processing
+            - New Siri capabilities with contextual understanding
+            - Enhanced privacy features across all platforms
             
-            Strategic Developments:
-            Tim Cook announced significant AI partnerships with leading technology
-            companies to accelerate Apple Intelligence rollout. "AI will transform
-            how users interact with our devices," Cook emphasized.
+            Strategic AI Focus:
+            Tim Cook emphasized Apple's unique approach to AI with privacy-first design.
+            "Apple Intelligence represents the next chapter in AI that puts users in control
+            while delivering powerful capabilities," Cook announced.
             
-            The company also revealed Vision Pro expansion plans with new enterprise
-            applications and content partnerships driving adoption.
-            
-            Financial Position:
-            Despite revenue decline, Apple maintained strong profitability with
-            gross margins of 46.3%. The company's cash position remains robust
-            at $162 billion, enabling continued innovation investments.
-            
-            Market Outlook:
-            Apple expressed optimism about upcoming product cycles and the potential
-            for AI to drive new growth opportunities across its ecosystem.
+            Developer Impact:
+            New AI APIs enable developers to create more intelligent applications.
+            Machine learning frameworks updated with advanced capabilities.
+            Core ML enhancements for better on-device inference.
             """,
-            "metadata": {"date": "2024Q2", "company": "Apple", "report_type": "earnings"}
+            "metadata": {"date": "2024-06-10", "company": "Apple", "report_type": "conference"}  # ISO date format
         },
         {
-            "doc_id": "apple_earnings_2024q3",
+            "doc_id": "microsoft_march_2024",
             "text": """
-            Apple Inc. Q3 2024 Earnings Report - AI-Driven Recovery
+            Microsoft Cloud Services Update - March 2024
             
-            Strong Q3 Performance:
-            - Total revenue: $94.9 billion (+5% YoY)
-            - iPhone revenue: $39.3 billion (+3% YoY recovery)
-            - Services revenue: $24.2 billion (+15% YoY)
-            - Mac revenue: $6.8 billion (+2% YoY turnaround)
-            - iPad revenue: $6.3 billion (-1% YoY, stabilizing)
+            Azure Performance:
+            - Azure revenue grew 31% year-over-year in March 2024
+            - AI services adoption increased 200% month-over-month
+            - Enterprise customer growth accelerated significantly
+            - New data center regions launched in Asia-Pacific
             
-            AI Integration Success:
-            CEO Tim Cook celebrated the successful launch of Apple Intelligence
-            features, which drove significant user engagement and iPhone upgrade
-            activity. "Apple Intelligence has exceeded our expectations and is
-            fundamentally changing how people use their devices."
-            
-            The AI-powered features have contributed to increased Services attachment
-            rates and higher customer satisfaction scores across all product lines.
-            
-            Innovation Pipeline:
-            Apple announced breakthrough developments in machine learning chips
-            and neural processing capabilities that will power next-generation
-            devices. The company is investing heavily in AI research and development.
+            AI Integration:
+            Microsoft integrated GPT-4 capabilities across Azure services.
+            Copilot for Azure provides intelligent cloud management assistance.
+            New AI-powered analytics tools for enterprise customers.
             
             Market Position:
-            Industry analysts highlighted Apple's successful AI strategy execution
-            and its ability to differentiate in an increasingly competitive market.
-            The company's integrated approach to AI across hardware and software
-            is seen as a key competitive advantage.
+            Microsoft solidified its position as the leading cloud AI platform.
+            Partnership announcements with major technology companies.
+            Continued investment in sustainable cloud infrastructure.
             """,
-            "metadata": {"date": "2024Q3", "company": "Apple", "report_type": "earnings"}
+            "metadata": {"date": "2024-03", "company": "Microsoft", "report_type": "update"}  # Year-month format
+        },
+        {
+            "doc_id": "google_annual_2024",
+            "text": """
+            Google Annual Technology Review - 2024
+            
+            AI Research Breakthroughs:
+            - Gemini model family achieved new performance benchmarks
+            - Quantum computing advances with new error correction
+            - Search algorithm improvements with AI integration
+            - YouTube AI-powered content recommendation enhancements
+            
+            Business Impact:
+            Google's AI investments drove significant revenue growth throughout 2024.
+            Cloud services benefited from enterprise AI adoption trends.
+            Advertising platform improvements through machine learning optimization.
+            
+            Future Vision:
+            CEO Sundar Pichai outlined Google's commitment to responsible AI development.
+            Major investments in AI safety research and ethical guidelines.
+            Plans for expanding AI capabilities across all Google products.
+            """,
+            "metadata": {"date": "2024", "company": "Google", "report_type": "annual"}  # Year only format
+        },
+        {
+            "doc_id": "openai_phase_omega",
+            "text": """
+            OpenAI Project Development - Phase-Omega
+            
+            Research Milestones:
+            During Phase-Omega, OpenAI achieved breakthrough improvements in:
+            - Reasoning capabilities with advanced chain-of-thought processing
+            - Multimodal understanding across text, image, and audio
+            - Safety alignment through constitutional AI training
+            - Efficiency optimizations for faster inference
+            
+            Technical Achievements:
+            The Phase-Omega development cycle focused on scalability and safety.
+            New training methodologies reduced computational requirements by 40%.
+            Enhanced safety measures prevent harmful content generation.
+            
+            Strategic Direction:
+            OpenAI's Phase-Omega represents a significant step toward AGI development.
+            Emphasis on responsible AI deployment and safety-first approach.
+            Collaboration with research institutions on AI alignment challenges.
+            """,
+            "metadata": {"date": "Phase-Omega", "company": "OpenAI", "report_type": "development"}  # Custom label format
         }
     ]
     
@@ -128,11 +157,10 @@ def main():
     rag.build_temporal_links()
     print("   - Temporal connections built successfully")
     
-    # Test cases showcasing the optimized flow
+    # Test cases showcasing the optimized flow with diverse time formats
     test_cases = [
         {
-            "name": "Strict Time Filtering - Q1 Only",
-            "question": "What was Apple's revenue performance and CEO commentary?",
+            "question": "What was Apple's Q1 2024 financial performance and CEO commentary?",
             "query_params": QueryParams(
                 time_range=["2024Q1"],
                 enable_time_filtering=True,
@@ -144,25 +172,35 @@ def main():
             )
         },
         {
-            "name": "With Temporal Evolution - Q2 Focus with Context",
-            "question": "How did AI initiatives evolve and impact Apple's business?",
+            "question": "What AI announcements were made at Apple's WWDC event?",
             "query_params": QueryParams(
-                time_range=["2024Q2"],
+                time_range=["2024-06-10"],
                 enable_time_filtering=True,
-                temporal_expansion_mode="with_temporal",  # Allow temporal evolution
-                temporal_evolution_scope="cross_time",  # Include evolution connections
-                temporal_weight=0.4,  # Balanced weighting
-                semantic_weight=0.6,
+                temporal_expansion_mode="strict",  # Only exact date
+                temporal_evolution_scope="within_range",
+                temporal_weight=0.7,  # High temporal focus for specific event
+                semantic_weight=0.3,
                 top_k=12
             )
         },
         {
-            "name": "Expanded Time Range - Multi-Quarter Analysis",
-            "question": "What trends can we see in Services revenue growth?",
+            "question": "How did Microsoft's cloud services perform in March 2024?",
             "query_params": QueryParams(
-                time_range=["2024Q2", "2024Q3"],
+                time_range=["2024-03"],
                 enable_time_filtering=True,
-                temporal_expansion_mode="expanded",  # Include adjacent quarters
+                temporal_expansion_mode="with_temporal",  # Allow some temporal context
+                temporal_evolution_scope="cross_time",  # Include evolution connections
+                temporal_weight=0.5,  # Balanced weighting
+                semantic_weight=0.5,
+                top_k=12
+            )
+        },
+        {
+            "question": "What were Google's major AI achievements in 2024?",
+            "query_params": QueryParams(
+                time_range=["2024"],
+                enable_time_filtering=True,
+                temporal_expansion_mode="expanded",  # Include adjacent periods
                 temporal_evolution_scope="all",  # All temporal connections
                 temporal_weight=0.3,  # Semantic focus with temporal context
                 semantic_weight=0.7,
@@ -170,26 +208,36 @@ def main():
             )
         },
         {
-            "name": "Semantic-First Query - No Time Constraints",
-            "question": "What did Tim Cook say about innovation and technology?",
+            "question": "What progress was made during Phase-Omega development?",
             "query_params": QueryParams(
-                enable_time_filtering=False,  # No time filtering
-                temporal_weight=0.1,  # Minimal temporal weight
-                semantic_weight=0.9,  # High semantic focus
+                time_range=["Phase-Omega"],
+                enable_time_filtering=True,
+                temporal_expansion_mode="strict",  # Focus on specific phase
+                temporal_evolution_scope="within_range",
+                temporal_weight=0.6,  # High temporal importance for custom phases
+                semantic_weight=0.4,
                 top_k=10
             )
         },
         {
-            "name": "Time-Semantic Balance - AI Evolution",
-            "question": "How did Apple's AI strategy develop throughout 2024?",
+            "question": "How did AI development evolve across different companies and timeframes?",
             "query_params": QueryParams(
-                time_range=["2024"],  # Full year
+                time_range=["2024Q1", "2024-06-10", "2024-03", "Phase-Omega"],  # Mixed formats
                 enable_time_filtering=True,
                 temporal_expansion_mode="with_temporal",
                 temporal_evolution_scope="cross_time",
-                temporal_weight=0.5,  # Equal weighting
-                semantic_weight=0.5,
-                top_k=18
+                temporal_weight=0.4,  # Balanced approach for comparison
+                semantic_weight=0.6,
+                top_k=25
+            )
+        },
+        {
+            "question": "What did technology leaders say about AI innovation and future vision?",
+            "query_params": QueryParams(
+                enable_time_filtering=False,  # No time filtering
+                temporal_weight=0.1,  # Minimal temporal weight
+                semantic_weight=0.9,  # High semantic focus
+                top_k=15
             )
         }
     ]
@@ -197,7 +245,7 @@ def main():
     print("\n3. Running optimized RAG flow tests...\n")
     
     for i, test_case in enumerate(test_cases, 1):
-        print(f"--- Test {i}: {test_case['name']} ---")
+        print(f"--- Test {i} ---")
         print(f"Question: {test_case['question']}")
         print(f"Parameters:")
         print(f"  - Time Range: {test_case['query_params'].time_range}")
@@ -221,22 +269,22 @@ def main():
                     total_score = entity.get('score', 0.0)
                     semantic_score = entity.get('semantic_score', 0.0)
                     temporal_score = entity.get('temporal_score', 0.0)
-                    quarter = entity.get('metadata', {}).get('quarter', 'N/A')
-                    print(f"    • {name} (Q:{quarter}): Total={total_score:.3f} (S:{semantic_score:.3f}, T:{temporal_score:.3f})")
+                    time_period = entity.get('metadata', {}).get('_standardized_time', 'N/A')
+                    print(f"    • {name} (Time:{time_period}): Total={total_score:.3f} (S:{semantic_score:.3f}, T:{temporal_score:.3f})")
             
-            # Show relevant quarters found in results
-            found_quarters = set()
+            # Show relevant time periods found in results
+            found_time_periods = set()
             for entity in result['retrieved_entities']:
-                quarter = entity.get('metadata', {}).get('quarter')
-                if quarter:
-                    found_quarters.add(quarter)
+                time_period = entity.get('metadata', {}).get('_standardized_time')
+                if time_period:
+                    found_time_periods.add(time_period)
             for relation in result['retrieved_relations']:
-                quarter = relation.get('metadata', {}).get('quarter')
-                if quarter:
-                    found_quarters.add(quarter)
+                time_period = relation.get('metadata', {}).get('_standardized_time')
+                if time_period:
+                    found_time_periods.add(time_period)
             
-            if found_quarters:
-                print(f"  - Data from quarters: {sorted(found_quarters)}")
+            if found_time_periods:
+                print(f"  - Data from time periods: {sorted(found_time_periods)}")
             
             print(f"  - Token Stats: {result['token_stats']['total_tokens']} tokens")
             print(f"\nAnswer Preview: {result['answer'][:300]}...")

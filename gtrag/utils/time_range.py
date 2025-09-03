@@ -17,6 +17,9 @@ class TimeRangeParser:
     Maintains backward compatibility with quarter-based API.
     """
     
+    # Quarter pattern for backward compatibility
+    QUARTER_PATTERN = re.compile(r'^(\d{4})Q([1-4])$')
+    
     @classmethod
     def parse_time_range(cls, time_range: Optional[List[str]]) -> Optional[Set[str]]:
         """
@@ -32,24 +35,11 @@ class TimeRangeParser:
         if not time_range:
             return None
         
-        valid_times = set()
+        # Use TimeHandler's expand_time_range for consistent expansion logic
+        expanded_times = TimeHandler.expand_time_range(time_range, expansion_mode="strict")
         
-        for time_spec in time_range:
-            if not isinstance(time_spec, str):
-                continue
-            
-            # Use TimeHandler to parse flexible formats
-            parsed_time = TimeHandler.parse_time(time_spec.strip())
-            if parsed_time:
-                valid_times.add(parsed_time.value)
-                
-                # If it's a year, expand to quarters for backward compatibility
-                if parsed_time.granularity == TimeGranularity.YEAR:
-                    year = parsed_time.value
-                    for quarter in [1, 2, 3, 4]:
-                        valid_times.add(f"{year}Q{quarter}")
-        
-        return valid_times if valid_times else None
+        # Return expanded times directly - TimeHandler already handles all time formats
+        return expanded_times if expanded_times else None
     
     @classmethod
     def validate_time_range(cls, time_range: Optional[List[str]]) -> Tuple[bool, str]:
@@ -82,25 +72,43 @@ class TimeRangeParser:
     @classmethod
     def expand_time_range(cls, time_range: Optional[List[str]]) -> List[str]:
         """
-        Expand time range to include all relevant quarters.
+        Expand time range to include all relevant time periods.
+        Delegates to TimeHandler for consistent expansion logic.
         
         Args:
             time_range: List of time specifications
             
         Returns:
-            List of expanded quarter strings, sorted chronologically
+            List of expanded time strings, sorted chronologically
         """
-        valid_quarters = cls.parse_time_range(time_range)
-        if not valid_quarters:
+        if not time_range:
             return []
         
-        # Sort quarters chronologically
-        sorted_quarters = sorted(list(valid_quarters), key=cls._quarter_sort_key)
-        return sorted_quarters
+        # Use TimeHandler's expand_time_range with adjacent expansion
+        expanded_times = TimeHandler.expand_time_range(time_range, expansion_mode="adjacent")
+        
+        # Sort using TimeHandler's parsing for consistent ordering
+        time_points = []
+        for time_str in expanded_times:
+            parsed = TimeHandler.parse_time(time_str)
+            if parsed:
+                time_points.append(parsed)
+        
+        # Sort by TimePoint comparison (uses sort_key internally)
+        sorted_points = sorted(time_points)
+        return [tp.value for tp in sorted_points]
+    
+    @classmethod
+    def _time_sort_key(cls, time_str: str) -> str:
+        """Generate sort key for any time string using TimeHandler."""
+        parsed = TimeHandler.parse_time(time_str)
+        if parsed:
+            return parsed.sort_key
+        return "0"  # Fallback for invalid times
     
     @classmethod
     def _quarter_sort_key(cls, quarter: str) -> Tuple[int, int]:
-        """Generate sort key for quarter string."""
+        """Generate sort key for quarter string (backward compatibility)."""
         match = cls.QUARTER_PATTERN.match(quarter)
         if match:
             year, q = match.groups()
@@ -108,39 +116,31 @@ class TimeRangeParser:
         return (0, 0)  # Fallback for invalid quarters
     
     @classmethod
-    def get_temporal_neighbors(cls, quarter: str, include_adjacent: bool = True) -> Set[str]:
+    def get_temporal_neighbors(cls, time_str: str, include_adjacent: bool = True) -> Set[str]:
         """
-        Get neighboring quarters for temporal expansion.
+        Get neighboring time periods for temporal expansion.
+        Now supports flexible time formats through TimeHandler.
         
         Args:
-            quarter: Quarter string like "2024Q1"
-            include_adjacent: Whether to include adjacent quarters
+            time_str: Time string in any supported format
+            include_adjacent: Whether to include adjacent time periods
             
         Returns:
-            Set of neighboring quarter strings
+            Set of neighboring time strings
         """
-        neighbors = {quarter}
+        neighbors = {time_str}
         
         if not include_adjacent:
             return neighbors
         
-        match = cls.QUARTER_PATTERN.match(quarter)
-        if not match:
+        # Parse the time using TimeHandler
+        parsed_time = TimeHandler.parse_time(time_str)
+        if not parsed_time:
             return neighbors
         
-        year, q = int(match.group(1)), int(match.group(2))
-        
-        # Previous quarter
-        if q > 1:
-            neighbors.add(f"{year}Q{q-1}")
-        else:
-            neighbors.add(f"{year-1}Q4")
-        
-        # Next quarter
-        if q < 4:
-            neighbors.add(f"{year}Q{q+1}")
-        else:
-            neighbors.add(f"{year+1}Q1")
+        # Use TimeHandler's adjacent time functionality
+        adjacent_times = TimeHandler._get_adjacent_times(parsed_time)
+        neighbors.update(adjacent_times)
         
         return neighbors
 
@@ -150,13 +150,14 @@ def filter_nodes_by_time_range(nodes_data: List[dict],
                               temporal_expansion_mode: str = "with_temporal") -> List[dict]:
     """
     Filter nodes by time range with different expansion modes.
+    Now supports flexible time formats through TimeHandler.
     
     Args:
-        nodes_data: List of node dictionaries with 'quarter' metadata
-        time_range: Time range specification
+        nodes_data: List of node dictionaries with time metadata
+        time_range: Time range specification (any supported format)
         temporal_expansion_mode: How to expand the time range
-            - 'strict': Only exact quarters specified
-            - 'with_temporal': Include quarters + temporal evolution connections
+            - 'strict': Only exact times specified
+            - 'with_temporal': Include times + temporal evolution connections
             - 'expanded': Include neighbors + temporal evolution
         
     Returns:
@@ -165,27 +166,31 @@ def filter_nodes_by_time_range(nodes_data: List[dict],
     if not time_range:
         return nodes_data
     
-    valid_quarters = TimeRangeParser.parse_time_range(time_range)
-    if not valid_quarters:
+    valid_times = TimeRangeParser.parse_time_range(time_range)
+    if not valid_times:
         return nodes_data
     
     # Apply different expansion strategies
     if temporal_expansion_mode == "expanded":
-        # Include adjacent quarters
-        expanded_quarters = set()
-        for quarter in valid_quarters:
-            expanded_quarters.update(TimeRangeParser.get_temporal_neighbors(quarter))
-        valid_quarters = expanded_quarters
+        # Include adjacent time periods
+        expanded_times = set()
+        for time_str in valid_times:
+            expanded_times.update(TimeRangeParser.get_temporal_neighbors(time_str))
+        valid_times = expanded_times
     elif temporal_expansion_mode == "strict":
-        # Only exact quarters - no expansion needed
+        # Only exact times - no expansion needed
         pass
-    # "with_temporal" uses original valid_quarters but allows temporal evolution in edges
+    # "with_temporal" uses original valid_times but allows temporal evolution in edges
     
-    # Filter nodes
+    # Filter nodes using unified 'date' field
     filtered_nodes = []
     for node in nodes_data:
-        node_quarter = node.get('metadata', {}).get('quarter') or node.get('quarter')
-        if node_quarter in valid_quarters:
+        metadata = node.get('metadata', {})
+        node_time = (
+            metadata.get('date') or  # Unified 'date' field
+            node.get('date')  # Check direct field too
+        )
+        if node_time and node_time in valid_times:
             filtered_nodes.append(node)
     
     return filtered_nodes
@@ -197,10 +202,11 @@ def filter_edges_by_time_range(edges_data: List[dict],
                               temporal_evolution_scope: str = "cross_time") -> List[dict]:
     """
     Filter edges by time range with fine-grained temporal control.
+    Now supports flexible time formats through TimeHandler.
     
     Args:
-        edges_data: List of edge dictionaries with 'quarter' metadata
-        time_range: Time range specification
+        edges_data: List of edge dictionaries with time metadata
+        time_range: Time range specification (any supported format)
         temporal_expansion_mode: How to expand the time range
         temporal_evolution_scope: How to handle temporal evolution edges
             - 'within_range': Only temporal edges within the specified range
@@ -213,25 +219,29 @@ def filter_edges_by_time_range(edges_data: List[dict],
     if not time_range:
         return edges_data
     
-    valid_quarters = TimeRangeParser.parse_time_range(time_range)
-    if not valid_quarters:
+    valid_times = TimeRangeParser.parse_time_range(time_range)
+    if not valid_times:
         return edges_data
     
-    # Apply expansion to valid quarters based on mode
+    # Apply expansion to valid times based on mode
     if temporal_expansion_mode == "expanded":
-        expanded_quarters = set()
-        for quarter in valid_quarters:
-            expanded_quarters.update(TimeRangeParser.get_temporal_neighbors(quarter))
-        valid_quarters = expanded_quarters
+        expanded_times = set()
+        for time_str in valid_times:
+            expanded_times.update(TimeRangeParser.get_temporal_neighbors(time_str))
+        valid_times = expanded_times
     
     filtered_edges = []
     for edge in edges_data:
-        edge_quarter = edge.get('metadata', {}).get('quarter') or edge.get('quarter')
+        metadata = edge.get('metadata', {})
+        edge_time = (
+            metadata.get('date') or  # Unified 'date' field
+            edge.get('date')  # Check direct field too
+        )
         
         # Check if this is a temporal evolution edge
         is_temporal_edge = False
         edge_type = edge.get('type', '')
-        relation_keywords = edge.get('metadata', {}).get('relation_keywords', [])
+        relation_keywords = metadata.get('relation_keywords', [])
         if 'temporal_evolution' in edge_type or 'temporal_evolution' in relation_keywords:
             is_temporal_edge = True
         
@@ -239,15 +249,15 @@ def filter_edges_by_time_range(edges_data: List[dict],
             # Handle temporal evolution edges based on scope
             if temporal_evolution_scope == "all":
                 filtered_edges.append(edge)
-            elif temporal_evolution_scope == "within_range" and edge_quarter in valid_quarters:
+            elif temporal_evolution_scope == "within_range" and edge_time in valid_times:
                 filtered_edges.append(edge)
             elif temporal_evolution_scope == "cross_time":
-                # Allow temporal edges that connect to/from valid quarters
+                # Allow temporal edges that connect to/from valid times
                 # This requires checking source/target nodes, but we include all for now
                 filtered_edges.append(edge)
         else:
-            # Regular edges: include if within valid quarters
-            if edge_quarter in valid_quarters:
+            # Regular edges: include if within valid times
+            if edge_time and edge_time in valid_times:
                 filtered_edges.append(edge)
     
     return filtered_edges

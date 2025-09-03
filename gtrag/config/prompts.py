@@ -52,13 +52,9 @@ class PromptConfig:
             cls._instance = cls()
         return cls._instance
 
-    def get_entity_extraction_prompt(self) -> Dict[str, Any]:
-        """Get entity extraction prompt template."""
+    def get_extraction_prompt(self) -> Dict[str, Any]:
+        """Get entity and relation extraction prompt template (both are extracted together)."""
         return self._prompt_config.get("entity_extraction", {})
-
-    def get_relation_extraction_prompt(self) -> Dict[str, Any]:
-        """Get relation extraction prompt template."""
-        return self._prompt_config.get("relation_extraction", {})
 
     def get_query_understanding_prompt(self) -> Dict[str, Any]:
         """Get query understanding prompt template."""

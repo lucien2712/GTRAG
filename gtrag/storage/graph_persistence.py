@@ -8,7 +8,7 @@ import pickle
 import json
 import logging
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 import networkx as nx
 
 logger = logging.getLogger(__name__)
@@ -47,7 +47,7 @@ class GraphPersistence:
             raise
     
     @staticmethod
-    def load_graph(filepath: str) -> tuple[nx.Graph, Optional[Dict[str, Any]]]:
+    def load_graph(filepath: str) -> Tuple[nx.Graph, Optional[Dict[str, Any]]]:
         """
         Load NetworkX graph from disk with optional metadata.
         
@@ -157,7 +157,7 @@ class GraphPersistence:
         entity_nodes = sum(1 for n, data in graph.nodes(data=True) 
                          if data.get('node_type') == 'entity')
         temporal_edges = sum(1 for u, v, data in graph.edges(data=True) 
-                           if data.get('relation_type') == 'temporal_evolution')
+                           if 'temporal_evolution' in data.get('relation_keywords', []))
         
         # Node type distribution
         node_types = {}

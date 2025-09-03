@@ -187,3 +187,37 @@ class VectorDBConfig:
             "port": self.port,
             "collection_name": self.collection_name
         }
+
+
+@dataclass
+class ScoreWeights:
+    """
+    Scoring weight configuration for retrieval and graph operations.
+    
+    Used to balance the importance of different scoring factors in
+    multi-hop retrieval and centrality calculations.
+    """
+    # Node centrality weights
+    DEGREE_WEIGHT: float = 0.3      # Weight for node degree centrality
+    EDGE_WEIGHT: float = 0.4        # Weight for edge centrality/importance  
+    SEMANTIC_WEIGHT: float = 0.3    # Weight for semantic similarity
+    
+    # Retrieval scoring weights
+    TEMPORAL_WEIGHT: float = 0.6    # Temporal relevance weight
+    SEMANTIC_RETRIEVAL_WEIGHT: float = 0.4  # Semantic similarity weight in retrieval
+    
+    # Centrality combination weights
+    BETWEENNESS_WEIGHT: float = 0.4  # Betweenness centrality weight
+    PAGERANK_WEIGHT: float = 0.3     # PageRank weight
+    
+    def to_dict(self) -> Dict[str, float]:
+        """Convert weights to dictionary format."""
+        return {
+            "degree_weight": self.DEGREE_WEIGHT,
+            "edge_weight": self.EDGE_WEIGHT,
+            "semantic_weight": self.SEMANTIC_WEIGHT,
+            "temporal_weight": self.TEMPORAL_WEIGHT,
+            "semantic_retrieval_weight": self.SEMANTIC_RETRIEVAL_WEIGHT,
+            "betweenness_weight": self.BETWEENNESS_WEIGHT,
+            "pagerank_weight": self.PAGERANK_WEIGHT
+        }

@@ -17,7 +17,7 @@ def main():
     # Initialize gtrag system
     rag = gtragSystem()
     
-    # Sample temporal documents
+    # Sample temporal documents with various time formats
     sample_documents = [
         {
             "doc_id": "earnings_2024q1",
@@ -28,31 +28,51 @@ def main():
             CEO Tim Cook expressed optimism about AI integration and new products.
             The company announced a $0.24 dividend per share.
             """,
-            "metadata": {"date": "2024Q1", "company": "Apple", "report_type": "earnings"}
+            "metadata": {"date": "2024Q1", "company": "Apple", "report_type": "earnings"}  # Quarter format
         },
         {
-            "doc_id": "earnings_2024q2", 
-            "text": """Apple Inc. Q2 2024 Earnings Report
+            "doc_id": "product_launch_sep_2024", 
+            "text": """Apple iPhone 16 Launch Event - September 9, 2024
             
-            Revenue for Q2 2024 was $90.8 billion, down 4% from previous year.
-            iPhone sales declined to $51.0 billion due to market saturation.
-            Services revenue continued growing to $24.2 billion.
-            Tim Cook announced major AI partnerships and Vision Pro expansion.
-            Dividend remained at $0.24 per share.
+            Apple unveiled the iPhone 16 series with breakthrough AI capabilities.
+            New camera control features and enhanced computational photography.
+            Pre-orders begin September 13, with availability September 20, 2024.
+            Starting price remains competitive at $799 for base model.
             """,
-            "metadata": {"date": "2024Q2", "company": "Apple", "report_type": "earnings"}
+            "metadata": {"date": "2024-09-09", "company": "Apple", "report_type": "launch"}  # ISO date format
         },
         {
-            "doc_id": "earnings_2024q3",
-            "text": """Apple Inc. Q3 2024 Earnings Report
+            "doc_id": "microsoft_march_2024",
+            "text": """Microsoft Cloud Services Update - March 2024
             
-            Q3 2024 revenue reached $94.9 billion, showing 5% growth.
-            iPhone revenue rebounded to $39.3 billion with new model launches.
-            Services hit record $24.2 billion driven by App Store growth.
-            Tim Cook highlighted successful AI feature rollouts and market expansion.
-            Special dividend of $0.25 per share announced.
+            Azure cloud services showed remarkable 35% growth in March 2024.
+            New AI-powered developer tools launched for enterprise customers.
+            Microsoft Teams integration with Copilot drives productivity gains.
+            Strong enterprise adoption across Fortune 500 companies.
             """,
-            "metadata": {"date": "2024Q3", "company": "Apple", "report_type": "earnings"}
+            "metadata": {"date": "2024-03", "company": "Microsoft", "report_type": "update"}  # Year-month format
+        },
+        {
+            "doc_id": "google_annual_2024",
+            "text": """Google Annual Innovation Summary - 2024
+            
+            Google achieved breakthrough advances in AI research throughout 2024.
+            Quantum computing milestones reached with new processor designs.
+            Search algorithm improvements enhance user experience globally.
+            Sustainability initiatives show measurable environmental impact.
+            """,
+            "metadata": {"date": "2024", "company": "Google", "report_type": "annual"}  # Year only format
+        },
+        {
+            "doc_id": "tesla_phase_beta",
+            "text": """Tesla Full Self-Driving Beta Phase Update
+            
+            During Phase-Beta testing, Tesla's FSD showed significant improvements.
+            Neural network updates provide better object recognition capabilities.
+            Safety metrics improved by 40% compared to previous phase testing.
+            Regulatory approval processes advancing in multiple regions.
+            """,
+            "metadata": {"date": "Phase-Beta", "company": "Tesla", "report_type": "development"}  # Custom label format
         }
     ]
     
@@ -69,32 +89,40 @@ def main():
     rag.build_temporal_links()
     print("   - Temporal connections built successfully")
     
-    # Test cases for time range queries
+    # Test cases for time range queries with diverse formats
     test_cases = [
         {
             "name": "Query All Time Periods (No Filter)",
-            "question": "What was Apple's revenue performance?",
+            "question": "What technology developments occurred across companies?",
             "query_params": QueryParams()
         },
         {
-            "name": "Query Q1 2024 Only",
-            "question": "What was Apple's revenue performance?",
+            "name": "Query Q1 2024 Only (Quarter Format)",
+            "question": "What was Apple's Q1 2024 performance?",
             "query_params": QueryParams(
                 time_range=["2024Q1"],
                 enable_time_filtering=True
             )
         },
         {
-            "name": "Query Q2-Q3 2024 Range",
-            "question": "How did iPhone sales perform?", 
+            "name": "Query Specific Date (ISO Format)",
+            "question": "What happened during the iPhone 16 launch?", 
             "query_params": QueryParams(
-                time_range=["2024Q2", "2024Q3"],
+                time_range=["2024-09-09"],
                 enable_time_filtering=True
             )
         },
         {
-            "name": "Query with Year Specification",
-            "question": "What did Tim Cook say about AI?",
+            "name": "Query Month Period (Year-Month Format)",
+            "question": "What Microsoft developments occurred in March 2024?",
+            "query_params": QueryParams(
+                time_range=["2024-03"],
+                enable_time_filtering=True
+            )
+        },
+        {
+            "name": "Query Year Range (Year Only Format)",
+            "question": "What innovations did Google achieve in 2024?",
             "query_params": QueryParams(
                 time_range=["2024"],
                 enable_time_filtering=True,
@@ -102,10 +130,18 @@ def main():
             )
         },
         {
-            "name": "Query Single Quarter (Q3)",
-            "question": "What was the dividend announcement?",
+            "name": "Query Custom Phase (Custom Label Format)",
+            "question": "What progress was made during Phase-Beta testing?",
             "query_params": QueryParams(
-                time_range=["2024Q3"],
+                time_range=["Phase-Beta"],
+                enable_time_filtering=True
+            )
+        },
+        {
+            "name": "Query Mixed Time Formats",
+            "question": "Compare Q1 earnings to September launch and March updates",
+            "query_params": QueryParams(
+                time_range=["2024Q1", "2024-09-09", "2024-03"],
                 enable_time_filtering=True
             )
         }
@@ -132,15 +168,15 @@ def main():
             print(f"Retrieved Relations: {len(result['retrieved_relations'])}")
             print(f"Retrieved Chunks: {len(result['retrieved_source_chunks'])}")
             
-            # Show relevant quarters found in results
-            found_quarters = set()
+            # Show relevant time periods found in results
+            found_time_periods = set()
             for entity in result['retrieved_entities']:
-                quarter = entity.get('metadata', {}).get('quarter')
-                if quarter:
-                    found_quarters.add(quarter)
+                time_period = entity.get('metadata', {}).get('_standardized_time')
+                if time_period:
+                    found_time_periods.add(time_period)
             
-            if found_quarters:
-                print(f"Data from quarters: {sorted(found_quarters)}")
+            if found_time_periods:
+                print(f"Data from time periods: {sorted(found_time_periods)}")
             
             print(f"Answer: {result['answer'][:200]}...")
             
@@ -153,11 +189,15 @@ def main():
     print("4. Testing time range validation...\n")
     
     invalid_cases = [
-        ["2024Q5"],  # Invalid quarter
-        ["2024Q0"],  # Invalid quarter  
-        ["24Q1"],    # Invalid year format
-        ["Q1"],      # Missing year
-        [2024]       # Wrong type
+        ["2024Q5"],        # Invalid quarter
+        ["2024Q0"],        # Invalid quarter  
+        ["24Q1"],          # Invalid year format
+        ["Q1"],            # Missing year
+        ["2024-13-01"],    # Invalid month in ISO date
+        ["2024-02-30"],    # Invalid day in ISO date
+        ["13-2024"],       # Invalid month format
+        [2024],            # Wrong type (should be string)
+        ["invalid-date"]   # Unrecognizable format
     ]
     
     for invalid_range in invalid_cases:
