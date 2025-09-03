@@ -170,6 +170,8 @@ def main():
         
         # Define query parameters
         custom_query_params = QueryParams(
+            time_range=["2024Q1"],
+            enable_time_filtering=True,
             top_k=8,
             similarity_threshold=0.2,
             max_hops=2,

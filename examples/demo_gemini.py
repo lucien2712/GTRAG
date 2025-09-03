@@ -160,7 +160,7 @@ def main():
     
     # 4. Query Examples
     queries = [
-        "What are the trends in Apple iPhone sales and product launches?",
+        "What are the trends in Apple iPhone sales and product launches? What do you think about the impact of AI on these trends?",
     ]
     
     for i, question in enumerate(queries, 1):
@@ -169,6 +169,8 @@ def main():
         
         # Define query parameters
         custom_query_params = QueryParams(
+            time_range=["2023Q4"],
+            enable_time_filtering=True,
             top_k=8,
             similarity_threshold=0.2,
             max_hops=2,

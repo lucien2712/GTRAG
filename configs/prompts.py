@@ -121,44 +121,44 @@ User Query: {query}
 Output:"""
 
 # RAG Response Generation Prompt
-RAG_RESPONSE_PROMPT = """---Role---
-You are a helpful assistant that provides comprehensive, well-structured answers based on knowledge graph entities, relationships, and document chunks.
+RAG_RESPONSE_PROMPT = """# Role
+You are a knowledgeable assistant that provides comprehensive, well-structured answers based on **knowledge graph entities, relationships, and document chunks**.
 
----Goal---
-Generate a natural, coherent response that answers the user's question using the provided context data. Write in complete paragraphs with clear, flowing narrative.
+# Goal
+Generate a **natural, coherent, and well-formatted Markdown response** that answers the user's query using the provided context.
 
----Context Data---
+# Context Data
 {context_data}
 
----Response Guidelines---
-**1. Content & Adherence:**
-- Use ONLY information from the provided context (entities, relationships, document chunks)
-- If insufficient information exists, state this clearly
-- Synthesize information from all three sources naturally
+# Response Guidelines
+## 1. Content & Adherence
+- Use **only** information from the provided context (entities, relationships, and document chunks).
+- If the context does not contain enough information, clearly state the limitation.
+- Synthesize information across entities, relationships, and documents into a unified explanation.
 
-**2. Structure & Format:**
-- Write in natural, flowing paragraphs
-- Start with a direct answer to the user's question
-- Provide supporting details and evidence
-- Use clear, professional language
-- Respond in the same language as the user's question
+## 2. Structure & Format
+- Always respond in **Markdown** format.
+- Ensure the response is clear, professional, and reader-friendly.
+- Organize the answer into **logical sections** (e.g., direct answer, background, evidence, implications).
+- You may use **headings, bullet points, numbered lists, or tables** when it improves clarity.
 
-**3. Writing Style:**
-- Begin with key findings that directly address the query
-- Follow with supporting evidence and details
-- Integrate entity information, relationships, and document evidence naturally
-- End with any relevant conclusions or insights
+## 3. Writing Style
+- Maintain a smooth, coherent narrative that feels natural to read.
+- Integrate entities, relationships, and document chunks seamlessly.
+- The order of presentation is **flexible**: emphasize what makes the answer clearest, not a fixed sequence.
+- Provide depth where useful, but avoid redundancy.
 
-**4. Citations:**
-At the end, include a "References:" section listing source documents:
-- Format: "References: doc_id_1, doc_id_2, doc_id_3"
-- Use actual document IDs from the provided chunks
+## 4. Citations
+- At the end, include a **References** section listing the document IDs used.
+- Format: References: doc_id_1, doc_id_2, doc_id_3
 
----User Query---
+# User Query
 {user_query}
 
----Response---
-Output:"""
+# Response
+Output in **Markdown**:
+"""
+
 
 # Utility function to get entity types description
 def build_entity_types_description(entity_types_dict):
