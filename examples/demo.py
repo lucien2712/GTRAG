@@ -53,8 +53,9 @@ def gpt_4o_mini_llm(system_prompt: str, user_prompt: str) -> str:
         print(f"Error calling GPT-4o-mini: {e}")
         return "{}"
 
-def openai_embedding_func(text: str) -> list:
+def openai_embedding_func(text: str):
     """Custom embedding function using OpenAI text-embedding-3-small model."""
+    import numpy as np
     try:
         import openai
         client = openai.OpenAI()
@@ -62,13 +63,15 @@ def openai_embedding_func(text: str) -> list:
             model="text-embedding-3-small",
             input=text
         )
-        return response.data[0].embedding
+        # Convert list to numpy array for compatibility
+        embedding = response.data[0].embedding
+        return np.array(embedding, dtype=np.float32)
     except ImportError:
         print("OpenAI library not available. Please install: pip install openai")
-        return []
+        return np.array([], dtype=np.float32)
     except Exception as e:
         print(f"Error generating embedding: {e}")
-        return []
+        return np.array([], dtype=np.float32)
 
 
 def main():

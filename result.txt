@@ -3,82 +3,162 @@
 gtrag API Usage Demo
 ============================================================
 1. 🚀 Initializing gtrag System...
-2025-09-03 13:14:21,057 - INFO - Initialized FAISS vector store: dimension=768, metric=cosine, type=flat
-2025-09-03 13:14:21,057 - INFO - Initialized FAISS vector store
-2025-09-03 13:14:21,315 - INFO - gtrag system initialized successfully.
+2025-09-03 14:35:24,511 - INFO - Initialized FAISS vector store: dimension=768, metric=cosine, type=flat
+2025-09-03 14:35:24,511 - INFO - Initialized FAISS vector store
+2025-09-03 14:35:24,756 - INFO - gtrag system initialized successfully.
    ✅ System initialization completed successfully
 
 2. 📄 Indexing documents with temporal metadata...
-2025-09-03 13:14:21,315 - INFO - Starting document insertion: apple_q4_2023
-2025-09-03 13:14:21,315 - INFO - Standardized time for apple_q4_2023: 2023Q4 (quarter)
-2025-09-03 13:14:21,315 - INFO - Document apple_q4_2023 split into 1 chunks.
-2025-09-03 13:14:24,140 - INFO - LLM response for apple_q4_2023 (first 500 chars): {"entities": [{"entity_name": "Apple Inc.", "entity_type": "COMPANY", "entity_description": "The company that produces iPhones"}, {"entity_name": "iPhone", "entity_type": "PRODUCT", "entity_description": "A smartphone produced by Apple Inc."}, {"entity_name": "80 million units", "entity_type": "FINANCIAL_METRIC", "entity_description": "The number of iPhones sold in Q4 2023"}, {"entity_name": "Q4 2023", "entity_type": "FINANCIAL_METRIC", "entity_description": "The fourth quarter of the year 2023"
-2025-09-03 13:14:24,140 - INFO - Received JSON response from LLM with 4 entities, 4 relations
-2025-09-03 13:14:24,140 - INFO - Successfully parsed JSON format: 4 entities, 4 relations
-2025-09-03 13:14:24,146 - INFO - Chunk apple_q4_2023_chunk_0 extracted 4 entities, 4 relations.
-   ❌ Failed to index apple_q4_2023: 'list' object has no attribute 'reshape'
-2025-09-03 13:14:24,546 - INFO - Starting document insertion: apple_launch_sep_2023
-2025-09-03 13:14:24,546 - INFO - Standardized time for apple_launch_sep_2023: 2023-09-15 (day)
-2025-09-03 13:14:24,546 - INFO - Document apple_launch_sep_2023 split into 1 chunks.
-2025-09-03 13:14:28,023 - INFO - LLM response for apple_launch_sep_2023 (first 500 chars): {"entities": [{"entity_name": "Apple", "entity_type": "COMPANY", "entity_description": "A technology company that launched the iPhone 15."}, {"entity_name": "iPhone 15", "entity_type": "PRODUCT", "entity_description": "A new iPhone model launched by Apple on September 15, 2023.  It features a titanium design and enhanced camera capabilities."}, {"entity_name": "September 15, 2023", "entity_type": "Other", "entity_description": "The launch date of the iPhone 15."}, {"entity_name": "titanium desig
-2025-09-03 13:14:28,023 - INFO - Received JSON response from LLM with 5 entities, 4 relations
-2025-09-03 13:14:28,023 - INFO - Successfully parsed JSON format: 5 entities, 4 relations
-2025-09-03 13:14:28,023 - INFO - Chunk apple_launch_sep_2023_chunk_0 extracted 5 entities, 4 relations.
-   ❌ Failed to index apple_launch_sep_2023: 'list' object has no attribute 'reshape'
-2025-09-03 13:14:28,385 - INFO - Starting document insertion: ms_march_2024
-2025-09-03 13:14:28,385 - INFO - Standardized time for ms_march_2024: 2024-03 (month)
-2025-09-03 13:14:28,385 - INFO - Document ms_march_2024 split into 1 chunks.
-2025-09-03 13:14:31,459 - INFO - LLM response for ms_march_2024 (first 500 chars): {"entities": [{"entity_name": "Microsoft", "entity_type": "COMPANY", "entity_description": "A technology company whose cloud business revenue grew significantly in March 2024."}, {"entity_name": "30%", "entity_type": "FINANCIAL_METRIC", "entity_description": "The percentage growth of Microsoft's cloud business revenue in March 2024."}, {"entity_name": "March 2024", "entity_type": "Other", "entity_description": "The month and year in which Microsoft's cloud business revenue grew significantly."},
-2025-09-03 13:14:31,459 - INFO - Received JSON response from LLM with 4 entities, 3 relations
-2025-09-03 13:14:31,459 - INFO - Successfully parsed JSON format: 4 entities, 3 relations
-2025-09-03 13:14:31,459 - INFO - Chunk ms_march_2024_chunk_0 extracted 4 entities, 3 relations.
-   ❌ Failed to index ms_march_2024: 'list' object has no attribute 'reshape'
-2025-09-03 13:14:31,849 - INFO - Starting document insertion: google_annual_2024
-2025-09-03 13:14:31,849 - INFO - Standardized time for google_annual_2024: 2024 (year)
-2025-09-03 13:14:31,849 - INFO - Document google_annual_2024 split into 1 chunks.
-2025-09-03 13:14:34,643 - INFO - LLM response for google_annual_2024 (first 500 chars): {"entities": [{"entity_name": "Google", "entity_type": "COMPANY", "entity_description": "A technology company that held a developer conference in 2024"}, {"entity_name": "2024", "entity_type": "Other", "entity_description": "The year Google's developer conference was held"}, {"entity_name": "AI advances", "entity_type": "TECHNOLOGY", "entity_description": "Major advancements in artificial intelligence showcased at the conference"}, {"entity_name": "cloud computing capabilities", "entity_type": "
-2025-09-03 13:14:34,643 - INFO - Received JSON response from LLM with 4 entities, 3 relations
-2025-09-03 13:14:34,643 - INFO - Successfully parsed JSON format: 4 entities, 3 relations
-2025-09-03 13:14:34,643 - INFO - Chunk google_annual_2024_chunk_0 extracted 4 entities, 3 relations.
-   ❌ Failed to index google_annual_2024: 'list' object has no attribute 'reshape'
-2025-09-03 13:14:34,993 - INFO - Starting document insertion: spacex_phase_alpha
-2025-09-03 13:14:34,993 - INFO - Standardized time for spacex_phase_alpha: Phase-Alpha (custom)
-2025-09-03 13:14:34,993 - INFO - Document spacex_phase_alpha split into 1 chunks.
-2025-09-03 13:14:38,698 - INFO - LLM response for spacex_phase_alpha (first 500 chars): {"entities": [{"entity_name": "SpaceX", "entity_type": "COMPANY", "entity_description": "A company that successfully tested the new Raptor engine design for improved efficiency during Phase-Alpha of the Mars mission project."}, {"entity_name": "Raptor engine", "entity_type": "PRODUCT", "entity_description": "New engine design tested by SpaceX for improved efficiency."}, {"entity_name": "Mars mission project", "entity_type": "BUSINESS_CONCEPT", "entity_description": "The project during which Spac
-2025-09-03 13:14:38,698 - INFO - Received JSON response from LLM with 4 entities, 5 relations
-2025-09-03 13:14:38,698 - INFO - Successfully parsed JSON format: 4 entities, 5 relations
-2025-09-03 13:14:38,698 - INFO - Chunk spacex_phase_alpha_chunk_0 extracted 4 entities, 5 relations.
-   ❌ Failed to index spacex_phase_alpha: 'list' object has no attribute 'reshape'
+2025-09-03 14:35:24,756 - INFO - Starting document insertion: apple_q4_2023
+2025-09-03 14:35:24,756 - INFO - Standardized time for apple_q4_2023: 2023Q4 (quarter)
+2025-09-03 14:35:24,756 - INFO - Document apple_q4_2023 split into 1 chunks.
+2025-09-03 14:35:27,732 - INFO - LLM response for apple_q4_2023 (first 500 chars): [
+  {
+    "entities": [
+      {
+        "entity_name": "Apple Inc.",
+        "entity_type": "COMPANY",
+        "entity_description": "A company mentioned in the text."
+      },
+      {
+        "entity_name": "iPhone",
+        "entity_type": "PRODUCT",
+        "entity_description": "A product sold by Apple Inc."
+      },
+      {
+        "entity_name": "80 million",
+        "entity_type": "FINANCIAL_METRIC",
+        "entity_description": "Number of iPhone units sold."
+      },
+      {
+        "ent
+2025-09-03 14:35:27,732 - INFO - Parsing 1 items from response for apple_q4_2023
+2025-09-03 14:35:27,734 - WARNING - No entities/relations extracted from apple_q4_2023. Response format may be incorrect.
+2025-09-03 14:35:27,734 - INFO - Chunk apple_q4_2023_chunk_0 extracted 0 entities, 0 relations.
+   ✅ Indexed [1/5]: apple_q4_2023
+2025-09-03 14:35:27,734 - INFO - Starting document insertion: apple_launch_sep_2023
+2025-09-03 14:35:27,736 - INFO - Standardized time for apple_launch_sep_2023: 2023-09-15 (day)
+2025-09-03 14:35:27,736 - INFO - Document apple_launch_sep_2023 split into 1 chunks.
+2025-09-03 14:35:29,388 - INFO - LLM response for apple_launch_sep_2023 (first 500 chars): [
+  {
+    "entity": "<|>Apple<|>COMPANY<|>Company that launched iPhone 15",
+    "relationship": null
+  },
+  {
+    "entity": "<|>iPhone 15<|>PRODUCT<|>A phone featuring titanium design and enhanced camera capabilities",
+    "relationship": null
+  },
+  {
+    "entity": "<|>September 15, 2023<|>Other<|>Launch date of iPhone 15",
+    "relationship": null
+  },
+  {
+    "entity": "<|>Titanium<|>TECHNOLOGY<|>Material used in the design of iPhone 15",
+    "relationship": null
+  },
+  {
+    "entity": "<|>Ap
+2025-09-03 14:35:29,389 - INFO - Parsing 1 items from response for apple_launch_sep_2023
+2025-09-03 14:35:29,389 - WARNING - No entities/relations extracted from apple_launch_sep_2023. Response format may be incorrect.
+2025-09-03 14:35:29,389 - INFO - Chunk apple_launch_sep_2023_chunk_0 extracted 0 entities, 0 relations.
+   ✅ Indexed [2/5]: apple_launch_sep_2023
+2025-09-03 14:35:29,390 - INFO - Starting document insertion: ms_march_2024
+2025-09-03 14:35:29,390 - INFO - Standardized time for ms_march_2024: 2024-03 (month)
+2025-09-03 14:35:29,390 - INFO - Document ms_march_2024 split into 1 chunks.
+2025-09-03 14:35:32,284 - INFO - LLM response for ms_march_2024 (first 500 chars): [
+  {
+    "entities": [
+      {
+        "entity": "<|><Microsoft><|><COMPANY><|><Company>"
+      },
+      {
+        "entity": "<|><Cloud Business><|><BUSINESS_CONCEPT><|><Microsoft's cloud business>"
+      },
+      {
+        "entity": "<|><Revenue><|><FINANCIAL_METRIC><|><Cloud business revenue>"
+      },
+      {
+        "entity": "<|><30%><|><FINANCIAL_METRIC><|><Growth rate of cloud business revenue>"
+      },
+      {
+        "entity": "<|><March 2024><|><Other><|><Date of revenue growth>"
+
+2025-09-03 14:35:32,286 - INFO - Parsing 1 items from response for ms_march_2024
+2025-09-03 14:35:32,286 - WARNING - No entities/relations extracted from ms_march_2024. Response format may be incorrect.
+2025-09-03 14:35:32,286 - INFO - Chunk ms_march_2024_chunk_0 extracted 0 entities, 0 relations.
+   ✅ Indexed [3/5]: ms_march_2024
+2025-09-03 14:35:32,286 - INFO - Starting document insertion: google_annual_2024
+2025-09-03 14:35:32,286 - INFO - Standardized time for google_annual_2024: 2024 (year)
+2025-09-03 14:35:32,286 - INFO - Document google_annual_2024 split into 1 chunks.
+2025-09-03 14:35:34,378 - INFO - LLM response for google_annual_2024 (first 500 chars): [
+  {
+    "entity": "<|>Google<|>COMPANY<|>Company that held an annual developer conference<|>",
+    "relationship": "<|>Google<|>AI<|>showcased, advances<|>Google's annual developer conference showcased major AI advances<|>"
+  },
+  {
+    "entity": "<|>2024<|>FINANCIAL_METRIC<|>Year of Google's annual developer conference<|>",
+    "relationship": "<|>Google<|>2024<|>held in<|>Google held its annual developer conference in 2024<|>"
+  },
+  {
+    "entity": "<|>AI<|>TECHNOLOGY<|>Major advances showc
+2025-09-03 14:35:34,378 - INFO - Parsing 1 items from response for google_annual_2024
+2025-09-03 14:35:34,389 - WARNING - No entities/relations extracted from google_annual_2024. Response format may be incorrect.
+2025-09-03 14:35:34,389 - INFO - Chunk google_annual_2024_chunk_0 extracted 0 entities, 0 relations.
+   ✅ Indexed [4/5]: google_annual_2024
+2025-09-03 14:35:34,389 - INFO - Starting document insertion: spacex_phase_alpha
+2025-09-03 14:35:34,389 - INFO - Standardized time for spacex_phase_alpha: Phase-Alpha (custom)
+2025-09-03 14:35:34,389 - INFO - Document spacex_phase_alpha split into 1 chunks.
+2025-09-03 14:35:36,315 - INFO - LLM response for spacex_phase_alpha (first 500 chars): [
+  {
+    "entity": "<|>SpaceX<|>COMPANY<|>Company involved in the Mars mission project and tested the Raptor engine.",
+    "relationship": null
+  },
+  {
+    "entity": "<|>Phase-Alpha<|>BUSINESS_CONCEPT<|>Phase of the Mars mission project.",
+    "relationship": null
+  },
+  {
+    "entity": "<|>Mars Mission<|>BUSINESS_CONCEPT<|>A project involving a mission to Mars.",
+    "relationship": null
+  },
+  {
+    "entity": "<|>Raptor Engine<|>TECHNOLOGY<|>New engine design tested by SpaceX for improved ef
+2025-09-03 14:35:36,315 - INFO - Parsing 1 items from response for spacex_phase_alpha
+2025-09-03 14:35:36,315 - WARNING - No entities/relations extracted from spacex_phase_alpha. Response format may be incorrect.
+2025-09-03 14:35:36,315 - INFO - Chunk spacex_phase_alpha_chunk_0 extracted 0 entities, 0 relations.
+   ✅ Indexed [5/5]: spacex_phase_alpha
 
 3. 🔗 Building temporal connections...
-2025-09-03 13:14:39,064 - INFO - Building temporal connections...
-2025-09-03 13:14:39,074 - INFO - Building temporal connections using flexible TimeHandler...
-2025-09-03 13:14:39,074 - INFO - Added 0 temporal evolution connections
-2025-09-03 13:14:39,074 - INFO - Temporal connections built successfully.
+2025-09-03 14:35:36,315 - INFO - Building temporal connections...
+2025-09-03 14:35:36,315 - INFO - Building temporal connections using flexible TimeHandler...
+2025-09-03 14:35:36,315 - INFO - Added 0 temporal evolution connections
+2025-09-03 14:35:36,315 - INFO - Temporal connections built successfully.
    ✅ Temporal connections built successfully
 
 📊 System Statistics:
-   - Documents indexed: 0
-   - Graph nodes: 5
+   - Documents indexed: 5
+   - Graph nodes: 0
    - Graph edges: 0
    - Stored chunks: 5
 
 4. 🔍 Query 1: What are the trends in Apple iPhone sales and product launches?
 --------------------------------------------------------------------------------
-2025-09-03 13:14:39,074 - INFO - Processing query: What are the trends in Apple iPhone sales and product launches?
-2025-09-03 13:14:40,253 - INFO - Keywords extracted: high_level=2, low_level=2
-2025-09-03 13:14:41,438 - INFO - Retrieved 0 entities, 0 relations.
-2025-09-03 13:14:41,438 - INFO - Found 0 primary + 0 supplementary = 0 total unique chunks.
-2025-09-03 13:14:41,438 - INFO - Final context prepared, total tokens: 80
-2025-09-03 13:14:42,644 - INFO - Answer generation completed.
+2025-09-03 14:35:36,325 - INFO - Processing query: What are the trends in Apple iPhone sales and product launches?
+2025-09-03 14:35:37,105 - INFO - Keywords extracted: high_level=2, low_level=2
+2025-09-03 14:35:38,255 - INFO - Retrieved 0 entities, 0 relations.
+2025-09-03 14:35:38,255 - INFO - Found 0 primary + 0 supplementary = 0 total unique chunks.
+2025-09-03 14:35:38,256 - INFO - Final context prepared, total tokens: 286
+2025-09-03 14:35:39,110 - INFO - Answer generation completed.
 📝 Answer:
-{"Key Findings": "I do not have access to real-time sales data or internal Apple information to provide specific trends in iPhone sales and product launches.  Information on this topic changes rapidly.", "Supporting Evidence": "My knowledge about Apple iPhone sales and product launches is limited to publicly available information before November 2023.  To get the most up-to-date trends, you should consult recent financial reports from Apple, reputable technology news sources, and market analysis firms.", "References": []}
+{
+  "answer": "I am sorry, but I cannot provide information on trends in Apple iPhone sales and product launches, as the provided context data does not contain information about this topic."
+}
 
 📈 Retrieved Context:
    - Entities: 0
    - Relations: 0
    - Source chunks: 0
-   - Total tokens: 80
+   - Total tokens: 286
    - Entity tokens: 0
    - Relation tokens: 0
    - Chunk tokens: 0
@@ -96,12 +176,12 @@ To make this warning go away, explicitly set the edges kwarg, e.g.:
   nx.node_link_data(G, edges="links") to preserve current behavior, or
   nx.node_link_data(G, edges="edges") for forward compatibility.
   warnings.warn(
-2025-09-03 13:14:42,665 - INFO - Graph saved to demo_gtrag_workspace\graph.json
-2025-09-03 13:14:42,665 - INFO - Knowledge graph saved to: demo_gtrag_workspace\graph.json
-2025-09-03 13:14:42,665 - INFO - Chunk store saved to: demo_gtrag_workspace\chunks.json
-2025-09-03 13:14:42,665 - INFO - Saved FAISS vector store to demo_gtrag_workspace\vectors
-2025-09-03 13:14:42,665 - INFO - Vector store saved to: demo_gtrag_workspace\vectors.*
-2025-09-03 13:14:42,665 - INFO - Complete gtrag system saved to working directory: ./demo_gtrag_workspace/
+2025-09-03 14:35:39,121 - INFO - Graph saved to demo_gtrag_workspace\graph.json
+2025-09-03 14:35:39,121 - INFO - Knowledge graph saved to: demo_gtrag_workspace\graph.json
+2025-09-03 14:35:39,121 - INFO - Chunk store saved to: demo_gtrag_workspace\chunks.json
+2025-09-03 14:35:39,130 - INFO - Saved FAISS vector store to demo_gtrag_workspace\vectors
+2025-09-03 14:35:39,130 - INFO - Vector store saved to: demo_gtrag_workspace\vectors.*
+2025-09-03 14:35:39,130 - INFO - Complete gtrag system saved to working directory: ./demo_gtrag_workspace/
    ✅ gtrag system saved successfully!
    📁 Working directory created: demo_gtrag_workspace
    📁 Files created:
@@ -111,14 +191,14 @@ To make this warning go away, explicitly set the edges kwarg, e.g.:
       - vectors.metadata.npy (Vector metadata)
    📋 Directory contents (4 files):
       - chunks.json (0.7 KB)
-      - graph.json (86.3 KB)
+      - graph.json (0.1 KB)
       - vectors.faiss (0.0 KB)
       - vectors.metadata.npy (0.4 KB)
 
 9. 📂 Loading gtrag system from working directory...
-2025-09-03 13:14:43,047 - INFO - Initialized FAISS vector store: dimension=768, metric=cosine, type=flat
-2025-09-03 13:14:43,047 - INFO - Initialized FAISS vector store
-2025-09-03 13:14:43,048 - INFO - gtrag system initialized successfully.
+2025-09-03 14:35:39,482 - INFO - Initialized FAISS vector store: dimension=768, metric=cosine, type=flat
+2025-09-03 14:35:39,482 - INFO - Initialized FAISS vector store
+2025-09-03 14:35:39,493 - INFO - gtrag system initialized successfully.
 C:\Users\ericy\.conda\envs\timerag\lib\site-packages\networkx\readwrite\json_graph\node_link.py:287: FutureWarning:
 The default value will be changed to `edges="edges" in NetworkX 3.6.
 
@@ -127,12 +207,12 @@ To make this warning go away, explicitly set the edges kwarg, e.g.:
   nx.node_link_graph(data, edges="links") to preserve current behavior, or
   nx.node_link_graph(data, edges="edges") for forward compatibility.
   warnings.warn(
-2025-09-03 13:14:43,058 - INFO - Graph loaded from demo_gtrag_workspace\graph.json
-2025-09-03 13:14:43,058 - INFO - Knowledge graph loaded from: demo_gtrag_workspace\graph.json
-2025-09-03 13:14:43,058 - INFO - Chunk store loaded from: demo_gtrag_workspace\chunks.json
-2025-09-03 13:14:43,058 - INFO - Loaded FAISS vector store from demo_gtrag_workspace\vectors
-2025-09-03 13:14:43,058 - INFO - Vector store loaded from: demo_gtrag_workspace\vectors.*
-2025-09-03 13:14:43,058 - INFO - Complete gtrag system loaded from working directory: ./demo_gtrag_workspace/
+2025-09-03 14:35:39,495 - INFO - Graph loaded from demo_gtrag_workspace\graph.json
+2025-09-03 14:35:39,495 - INFO - Knowledge graph loaded from: demo_gtrag_workspace\graph.json
+2025-09-03 14:35:39,495 - INFO - Chunk store loaded from: demo_gtrag_workspace\chunks.json
+2025-09-03 14:35:39,495 - INFO - Loaded FAISS vector store from demo_gtrag_workspace\vectors
+2025-09-03 14:35:39,495 - INFO - Vector store loaded from: demo_gtrag_workspace\vectors.*
+2025-09-03 14:35:39,495 - INFO - Complete gtrag system loaded from working directory: ./demo_gtrag_workspace/
    ✅ gtrag system loaded successfully!
    📂 Loaded from: demo_gtrag_workspace
    📊 Components loaded:
@@ -141,18 +221,18 @@ To make this warning go away, explicitly set the edges kwarg, e.g.:
       - Vectors: ✅
    📊 Loaded system statistics:
       - Documents: 0
-      - Nodes: 5
+      - Nodes: 0
       - Edges: 0
       - Chunks: 5
 
    🔍 Testing query on loaded system...
-2025-09-03 13:14:43,058 - INFO - Processing query: What did Apple achieve in 2024?
-2025-09-03 13:14:44,088 - INFO - Keywords extracted: high_level=2, low_level=2
-2025-09-03 13:14:45,231 - INFO - Retrieved 0 entities, 0 relations.
-2025-09-03 13:14:45,231 - INFO - Found 0 primary + 0 supplementary = 0 total unique chunks.
-2025-09-03 13:14:45,231 - INFO - Final context prepared, total tokens: 76
-2025-09-03 13:14:46,053 - INFO - Answer generation completed.
-      ✅ Query successful! Answer length: 225
+2025-09-03 14:35:39,495 - INFO - Processing query: What did Apple achieve in 2024?
+2025-09-03 14:35:40,708 - INFO - Keywords extracted: high_level=2, low_level=2
+2025-09-03 14:35:41,885 - INFO - Retrieved 0 entities, 0 relations.
+2025-09-03 14:35:41,885 - INFO - Found 0 primary + 0 supplementary = 0 total unique chunks.
+2025-09-03 14:35:41,885 - INFO - Final context prepared, total tokens: 282
+2025-09-03 14:35:42,670 - INFO - Answer generation completed.
+      ✅ Query successful! Answer length: 145
       📊 Retrieved: 0 entities, 0 relations
 
 ============================================================
@@ -166,11 +246,11 @@ To make this warning go away, explicitly set the edges kwarg, e.g.:
    - Clean separation of concerns with standardized file names
 
 📊 Final System State:
-   - indexed_documents: 0
+   - indexed_documents: 5
    - indexed_chunks: 5
-   - num_nodes: 5
+   - num_nodes: 0
    - num_edges: 0
-   - node_types: {'entity': 5}
+   - node_types: {}
    - relation_keywords: {}
    - has_vector_store: True
    - total_vectors: 0

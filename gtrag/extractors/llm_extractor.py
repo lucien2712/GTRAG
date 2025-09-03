@@ -247,100 +247,48 @@ class LLMExtractor:
             }
 
     def _parse_extraction_output(self, response_text: str, text: str, doc_id: str, metadata: Dict[str, Any]) -> Tuple[List[Entity], List[Relation]]:
-        """Parse LLM output in special format using LightRAG delimiters."""
+        """Parse LLM JSON output for entities and relationships."""
         entities = []
         relations = []
         
-        # Handle potential JSON responses from Gemini
-        if response_text.strip().startswith('{') and response_text.strip().endswith('}'):
-            try:
-                import json
-                json_response = json.loads(response_text)
-                logger.info(f"Received JSON response from LLM with {len(json_response.get('entities', []))} entities, {len(json_response.get('relationships', []))} relations")
-                
-                # Parse JSON format entities
-                json_entities = json_response.get('entities', [])
-                for entity_data in json_entities:
-                    entity = Entity(
-                        name=entity_data.get('entity_name', ''),
-                        type=entity_data.get('entity_type', 'Other'),
-                        description=entity_data.get('entity_description', ''),
-                        source_doc_id=doc_id,
-                        metadata={**metadata, 'chunk_id': metadata.get('chunk_id')}
-                    )
-                    entities.append(entity)
-                
-                # Parse JSON format relationships  
-                json_relations = json_response.get('relationships', [])
-                for relation_data in json_relations:
-                    relation = Relation(
-                        source=relation_data.get('source_entity', ''),
-                        target=relation_data.get('target_entity', ''),
-                        keywords=relation_data.get('relationship_keywords', 'related'),
-                        description=relation_data.get('relationship_description', ''),
-                        evidence=relation_data.get('relationship_description', ''),  # Use description as evidence
-                        source_doc_id=doc_id,
-                        metadata={**metadata, 'chunk_id': metadata.get('chunk_id')}
-                    )
-                    relations.append(relation)
-                
-                logger.info(f"Successfully parsed JSON format: {len(entities)} entities, {len(relations)} relations")
-                return entities, relations
-                
-            except json.JSONDecodeError as e:
-                logger.warning(f"Failed to parse JSON response: {e}")
-                pass
-        
-        # Split by record delimiter
-        items = response_text.strip().split('##')
-        logger.info(f"Parsing {len(items)} items from response for {doc_id}")
-        
-        for i, item in enumerate(items):
-            item = item.strip()
-            if not item:
-                continue
-                
-            # More flexible parsing - handle items that might not have exact parentheses
-            if item.startswith('(') and item.endswith(')'):
-                item_content = item[1:-1]
-            elif '<|>' in item:  # Still has delimiters, just missing parentheses
-                item_content = item
-            else:
-                logger.debug(f"Skipping malformed item {i}: {item[:100]}")
-                continue
+        try:
+            import json
+            json_response = json.loads(response_text.strip())
+            logger.info(f"Received JSON response from LLM with {len(json_response.get('entities', []))} entities, {len(json_response.get('relationships', []))} relations")
             
-            parts = item_content.split('<|>')
-            
-            if len(parts) < 4:
-                logger.debug(f"Item {i} has insufficient parts ({len(parts)}): {parts}")
-                continue
-                
-            item_type = parts[0].strip('"').strip("'")
-
-            if item_type == 'entity' and len(parts) >= 4:
+            # Parse entities
+            json_entities = json_response.get('entities', [])
+            for entity_data in json_entities:
                 entity = Entity(
-                    name=parts[1].strip('"').strip("'"),
-                    type=parts[2].strip('"').strip("'"),
-                    description=parts[3].strip('"').strip("'"),
+                    name=entity_data.get('entity_name', ''),
+                    type=entity_data.get('entity_type', 'Other'),
+                    description=entity_data.get('entity_description', ''),
                     source_doc_id=doc_id,
                     metadata={**metadata, 'chunk_id': metadata.get('chunk_id')}
                 )
                 entities.append(entity)
-                
-            elif item_type == 'relationship' and len(parts) >= 5:
+            
+            # Parse relationships
+            json_relations = json_response.get('relationships', [])
+            for relation_data in json_relations:
                 relation = Relation(
-                    source=parts[1].strip('"').strip("'"),
-                    target=parts[2].strip('"').strip("'"),
-                    keywords=parts[3].strip('"').strip("'"),  # relationship_keywords
-                    description=parts[4].strip('"').strip("'"),
-                    evidence=text[:200] + "..." if len(text) > 200 else text,  # Truncate evidence
+                    source=relation_data.get('source_entity', ''),
+                    target=relation_data.get('target_entity', ''),
+                    keywords=relation_data.get('relationship_keywords', 'related'),
+                    description=relation_data.get('relationship_description', ''),
+                    evidence=text[:200] + "..." if len(text) > 200 else text,
                     source_doc_id=doc_id,
                     metadata={**metadata, 'chunk_id': metadata.get('chunk_id')}
                 )
                 relations.append(relation)
-        
-        logger.debug(f"Parsed {len(entities)} entities and {len(relations)} relations from document {doc_id}")
-        return entities, relations
+            
+            logger.info(f"Successfully parsed JSON format: {len(entities)} entities, {len(relations)} relations")
+            return entities, relations
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON response from LLM: {e}")
+            logger.error(f"Response text: {response_text[:500]}...")
+            return [], []
 
     def get_stats(self) -> Dict[str, Any]:
         """Get extractor statistics."""

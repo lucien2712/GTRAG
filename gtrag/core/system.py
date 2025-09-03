@@ -73,6 +73,10 @@ class gtragSystem:
         self.chunker = DocumentChunker(config=chunking_config or ChunkingConfig())
         self.token_manager = TokenManager(query_params=query_params or QueryParams())
         
+        # Initialize prompt configuration
+        from ..config.prompts import PromptConfig
+        self.prompt_config = PromptConfig.get_instance()
+        
         # Store original chunk content for retrieval context
         self.chunk_store: Dict[str, str] = {}
         
@@ -221,15 +225,19 @@ class gtragSystem:
                 # Limit to avoid overwhelming context
                 supplementary_chunks = supplementary_chunks[:min(3, len(primary_chunks))]
         
-        # Combine chunks (no duplicates since we used sets for IDs)
+        # Combine chunks and their IDs (no duplicates since we used sets for IDs)
         source_chunks = primary_chunks + supplementary_chunks
+        source_chunk_ids = list(primary_chunk_ids) + list(time_relevant_chunk_ids if 'time_relevant_chunk_ids' in locals() else [])
+        # Ensure chunk_ids match the number of chunks
+        source_chunk_ids = source_chunk_ids[:len(source_chunks)]
         logger.info(f"Found {len(primary_chunks)} primary + {len(supplementary_chunks)} supplementary = {len(source_chunks)} total unique chunks.")
 
         # 4. Prepare context data (entities + relations + chunks)
-        context_data = self._format_context_data(retrieved_entities, retrieved_relations, source_chunks)
+        context_data = self._format_context_data(retrieved_entities, retrieved_relations, source_chunks, source_chunk_ids)
         
         # 5. Generate answer using RAG response prompt
-        system_prompt = "You are a helpful assistant that provides accurate answers based on knowledge graph entities, relationships, and document chunks."
+        rag_config = self.prompt_config.get_rag_response_prompt()
+        system_prompt = rag_config.get("system_prompt", "You are a helpful assistant that provides accurate answers based on knowledge graph entities, relationships, and document chunks.")
         
         # Add time range context if filtering was applied
         time_context = ""
@@ -238,23 +246,12 @@ class gtragSystem:
             expanded_times = TimeRangeParser.expand_time_range(params.time_range)
             time_context = f"\n---Time Range---\nAnalysis limited to time period: {', '.join(expanded_times)}\n"
         
-        rag_prompt = f"""---Context Data---
-{context_data}{time_context}
-
----User Query---
-{question}
-
-Generate a comprehensive response based on the provided entities, relationships, and document chunks. Structure your response with:
-
-### Key Findings
-Summarize the main information from entities and relationships
-
-### Supporting Evidence  
-Include relevant details from the document chunks
-
-### References
-List the most relevant sources used
-"""
+        # Format the RAG response prompt with context data and user query
+        rag_prompt_template = rag_config.get("template", "")
+        rag_prompt = rag_prompt_template.format(
+            context_data=context_data + time_context,
+            user_query=question
+        )
         
         final_prompt, token_stats = self.token_manager.prepare_final_context(
             retrieved_entities=retrieved_entities,
@@ -278,7 +275,7 @@ List the most relevant sources used
             "query_keywords": query_keywords
         }
 
-    def _format_context_data(self, entities: List[Dict], relations: List[Dict], chunks: List[str]) -> str:
+    def _format_context_data(self, entities: List[Dict], relations: List[Dict], chunks: List[str], chunk_ids: List[str] = None) -> str:
         """Format context data for the RAG response prompt."""
         context_parts = []
         
@@ -310,7 +307,16 @@ List the most relevant sources used
         if chunks:
             context_parts.append("\n### Document Chunks")
             for i, chunk in enumerate(chunks, 1):
-                context_parts.append(f"**Chunk {i}:** {chunk[:500]}..." if len(chunk) > 500 else f"**Chunk {i}:** {chunk}")
+                if chunk_ids and i <= len(chunk_ids):
+                    # Extract doc_id from chunk_id (format: doc_id_chunk_N)
+                    chunk_id = chunk_ids[i-1]
+                    doc_id = chunk_id.split('_chunk_')[0] if '_chunk_' in chunk_id else chunk_id
+                    truncated_chunk = chunk[:500] + "..." if len(chunk) > 500 else chunk
+                    context_parts.append(f"**{doc_id}:** {truncated_chunk}")
+                else:
+                    # Fallback if no chunk_ids provided
+                    truncated_chunk = chunk[:500] + "..." if len(chunk) > 500 else chunk
+                    context_parts.append(f"**Chunk {i}:** {truncated_chunk}")
         
         return "\n".join(context_parts)
 

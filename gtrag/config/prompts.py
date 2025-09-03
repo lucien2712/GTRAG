@@ -64,6 +64,10 @@ class PromptConfig:
         """Get result summarization prompt template."""
         return self._prompt_config.get("rag_response", {})
     
+    def get_rag_response_prompt(self) -> Dict[str, Any]:
+        """Get RAG response generation prompt template."""
+        return self._prompt_config.get("rag_response", {})
+    
     def reload_config(self):
         """Reload prompt configuration (useful for development)."""
         if self._prompts_module:

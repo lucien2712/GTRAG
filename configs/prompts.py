@@ -29,41 +29,51 @@ def get_all_configs():
         }
     }
 
-# Entity and Relationship Extraction Prompt (based on LightRAG)
+# Entity and Relationship Extraction Prompt (JSON Format)
 ENTITY_EXTRACTION_PROMPT = """---Role---
 You are an expert entity and relationship extractor. Extract entities and relationships from the provided text with high precision.
 
 ---Goal---
-Given a text document and entity types, identify all entities and relationships from the text.
+Extract all relevant entities and relationships from the text and return them in JSON format.
 Use {language} as output language.
 
----Steps---
+---Instructions---
 1. Identify entities in the text. For each entity, extract:
-- entity_name: Name of the entity (capitalize if English)
-- entity_type: One of [{entity_types}]. Use "Other" if unclear.
-- entity_description: Comprehensive description based on the text only
+   - entity_name: Name of the entity (capitalize if English)
+   - entity_type: One of [{entity_types}]. Use "Other" if unclear.
+   - entity_description: Comprehensive description based on the text only
 
-2. Format entities as:
-("entity"{tuple_delimiter}<entity_name>{tuple_delimiter}<entity_type>{tuple_delimiter}<entity_description>)
+2. Identify relationships between entities. For each relationship:
+   - source_entity: name of source entity from step 1
+   - target_entity: name of target entity from step 1  
+   - relationship_keywords: high-level keywords summarizing the relationship
+   - relationship_description: Clear explanation of the relationship
 
-3. Identify relationships between entities. For each relationship:
-- source_entity: name of source entity from step 1
-- target_entity: name of target entity from step 1  
-- relationship_keywords: high-level keywords summarizing the relationship
-- relationship_description: Clear explanation of the relationship
-
-4. Format relationships as:
-("relationship"{tuple_delimiter}<source_entity>{tuple_delimiter}<target_entity>{tuple_delimiter}<relationship_keywords>{tuple_delimiter}<relationship_description>)
-
-5. Use `{tuple_delimiter}` as field delimiter and `{record_delimiter}` as list delimiter.
-
-6. End with `{completion_delimiter}`
+3. Return ONLY valid JSON in this exact format:
+{{
+  "entities": [
+    {{
+      "entity_name": "Entity Name",
+      "entity_type": "ENTITY_TYPE",
+      "entity_description": "Description of the entity"
+    }}
+  ],
+  "relationships": [
+    {{
+      "source_entity": "Source Entity Name",
+      "target_entity": "Target Entity Name", 
+      "relationship_keywords": "High-level keywords",
+      "relationship_description": "Description of relationship"
+    }}
+  ]
+}}
 
 ---Quality Guidelines---
 - Only extract clearly defined entities and relationships
 - Stick to explicit information in the text
 - Include numerical data in entity names when relevant
 - Ensure consistent entity names
+- Return valid JSON only, no additional text
 
 ---Real Data---
 Entity_types: [{entity_types}]
@@ -72,9 +82,7 @@ Text:
 {input_text}
 ```
 
----Output---
-Output:
-"""
+---JSON Output---"""
 
 # Query Understanding / Keywords Extraction Prompt
 KEYWORDS_EXTRACTION_PROMPT = """---Role---
@@ -114,10 +122,10 @@ Output:"""
 
 # RAG Response Generation Prompt
 RAG_RESPONSE_PROMPT = """---Role---
-You are a helpful assistant that provides accurate answers based on knowledge graph entities, relationships, and document chunks. You respond to user queries using Knowledge Graph entities, relationships, and document chunks provided in JSON format.
+You are a helpful assistant that provides comprehensive, well-structured answers based on knowledge graph entities, relationships, and document chunks.
 
 ---Goal---
-Generate a comprehensive response based on the provided context data, including entities, relationships, and original document chunks. Follow strict adherence to the provided information.
+Generate a natural, coherent response that answers the user's question using the provided context data. Write in complete paragraphs with clear, flowing narrative.
 
 ---Context Data---
 {context_data}
@@ -126,28 +134,25 @@ Generate a comprehensive response based on the provided context data, including 
 **1. Content & Adherence:**
 - Use ONLY information from the provided context (entities, relationships, document chunks)
 - If insufficient information exists, state this clearly
-- Synthesize information from all three sources: entities, relationships, and chunks
+- Synthesize information from all three sources naturally
 
 **2. Structure & Format:**
-- Use markdown formatting with clear section headings
+- Write in natural, flowing paragraphs
+- Start with a direct answer to the user's question
+- Provide supporting details and evidence
+- Use clear, professional language
 - Respond in the same language as the user's question
-- Target format: {response_type}
 
-**3. Context Integration:**
-### Entities
-Summarize relevant entities and their descriptions
-
-### Relationships  
-Explain key relationships between entities
-
-### Document Evidence
-Include supporting information from original document chunks
+**3. Writing Style:**
+- Begin with key findings that directly address the query
+- Follow with supporting evidence and details
+- Integrate entity information, relationships, and document evidence naturally
+- End with any relevant conclusions or insights
 
 **4. Citations:**
-Under "References" section, cite up to 5 most relevant sources:
-- Knowledge Graph Entity: `[KG] <entity_name>`
-- Knowledge Graph Relationship: `[KG] <entity1_name> - <entity2_name>`  
-- Document Chunk: `[DC] <document_identifier>`
+At the end, include a "References:" section listing source documents:
+- Format: "References: doc_id_1, doc_id_2, doc_id_3"
+- Use actual document IDs from the provided chunks
 
 ---User Query---
 {user_query}

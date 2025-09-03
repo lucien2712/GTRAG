@@ -46,14 +46,14 @@ def gemini_llm(system_prompt: str, user_prompt: str) -> str:
     try:
         # 把 system prompt 放到 system_instruction，而不是 messages
         model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",            # 可換成 "gemini-1.5-pro"
+            model_name="gemini-2.0-flash",            # 可換成 "gemini-1.5-pro"
             system_instruction=system_prompt
         )
 
         resp = model.generate_content(
             user_prompt,
             generation_config={
-                "temperature": 0.1,
+                #"temperature": 0.1,
                 # 讓模型輸出 JSON（字串形態）；你原本用的是 OpenAI 的 response_format
                 "response_mime_type": "application/json"
             }

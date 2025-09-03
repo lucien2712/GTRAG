@@ -171,12 +171,12 @@ For basic usage, see the [Quick Start](#-quick-start) section above.
 from gtrag import gtragSystem, QueryParams
 
 # Custom LLM function (optional)
-def my_llm_function(system_prompt: str, user_prompt: str) -> str:
+def my_llm_function(system_prompt: str, user_prompt: str):
     # Your custom LLM implementation
     # Return JSON string for extraction, plain text for final answers
     pass
 
-def my_embedding_function(text: str) -> list:
+def my_embedding_function(text: str):
     # Your custom embedding implementation
     # Return list of floats
     pass
