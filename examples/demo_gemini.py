@@ -39,7 +39,7 @@ import google.generativeai as genai
 
 # 設定 API 金鑰 (需要先在環境變數設定 GOOGLE_API_KEY)
 import os
-genai.configure(api_key="AIzaSyBrwJhQNHNdyqtA3K-7kM_zZmv8sJUPpDQ")
+genai.configure(api_key="<YOUR TOEKEN>")
 
 def gemini_llm(system_prompt: str, user_prompt: str) -> str:
     """Custom LLM function using Google Gemini 1.5 model, returns JSON string."""
